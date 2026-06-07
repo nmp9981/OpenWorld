@@ -1,0 +1,32 @@
+/[Library]/
+/[Temp]/
+/[Obj]/
+/[Logs]/
+/[UserSettings]/
+/[Build]/
+/[Builds]/
+/[Production]/
+/[DerivedDataCache]/
+/Assets/AssetStoreTools*
+
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+Build/
+Builds/
+
+# Visual Studio / Rider 관련 임시 파일
+.vs/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS 생성 임시 파일
+.DS_Store
+Thumbs.db
