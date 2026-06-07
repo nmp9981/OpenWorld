@@ -15,7 +15,8 @@ public struct Vector3D
     /// <returns></returns>
     public double Magnitude()
     {
-        return x * x + y * y + z * z;
+        double square = x * x + y * y + z * z;
+        return MathUtility.Sqrt(square);
     }
 
     /// <summary>

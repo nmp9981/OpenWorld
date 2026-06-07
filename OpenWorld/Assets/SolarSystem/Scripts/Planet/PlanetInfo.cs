@@ -3,8 +3,8 @@ using UnityEngine;
 public class PlanetInfo : MonoBehaviour
 {
     public double Mass;
-    public Vector3 Radius;
-
+    public double Radius;
+    public Vector3D dist;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
