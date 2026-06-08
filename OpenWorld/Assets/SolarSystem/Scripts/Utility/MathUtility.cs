@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public static class MathUtility
 {
     /// <summary>
@@ -39,5 +41,16 @@ public static class MathUtility
             rootX = (rootX + (x / rootX)) *0.5;
         }
         return rootX;
+    }
+
+    /// <summary>
+    /// 2Â÷ ÀûºÐ
+    /// </summary>
+    /// <param name="vec0"></param>
+    /// <param name="dt"></param>
+    /// <returns></returns>
+    public static Vector3D Integrate(Vector3D vec0, double dt)
+    {
+        return vec0;
     }
 }
