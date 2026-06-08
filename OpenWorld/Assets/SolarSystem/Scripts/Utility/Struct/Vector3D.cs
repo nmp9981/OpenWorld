@@ -10,6 +10,21 @@ public struct Vector3D
     }
 
     /// <summary>
+    /// 벡터의 사칙연산
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <returns></returns>
+    public static Vector3D operator +(Vector3D a, Vector3D b)
+        => new Vector3D(a.x+b.x,a.y+b.y,a.z+b.z);
+    public static Vector3D operator -(Vector3D a, Vector3D b)
+        => new Vector3D(a.x - b.x, a.y - b.y, a.z - b.z);
+    public static Vector3D operator *(Vector3D a, double b)
+        => new Vector3D(a.x*b, a.y *b, a.z *b);
+    public static Vector3D operator /(Vector3D a, double b)
+        => new Vector3D(a.x / b, a.y / b, a.z / b);
+    
+    /// <summary>
     /// 크기
     /// </summary>
     /// <returns></returns>
