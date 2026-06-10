@@ -51,6 +51,6 @@ public static class MathUtility
     /// <returns></returns>
     public static Vector3D Integrate(Vector3D vec0, double dt)
     {
-        return vec0;
+        return vec0 * dt;
     }
 }

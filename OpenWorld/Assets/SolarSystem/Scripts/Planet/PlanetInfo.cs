@@ -16,6 +16,7 @@ public class PlanetInfo : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        this.position = new Vector3D(this.transform.position.x,0,0);
         dist = centerPlanet.position - this.position;
         velocity = SettingInitVelocity();
     }
@@ -27,6 +28,7 @@ public class PlanetInfo : MonoBehaviour
         accel = PhysicsFormula.Accel_From_Force(universialForce,Mass);
         velocity += MathUtility.Integrate(accel, Time.fixedTimeAsDouble);
         position += MathUtility.Integrate(velocity, Time.fixedTimeAsDouble);
+        SetPosition(position);
     }
 
     /// <summary>
@@ -36,9 +38,21 @@ public class PlanetInfo : MonoBehaviour
     {
         universialForce = PhysicsFormula.Force_UniversalGravitation(dist, centerPlanet.Mass, Mass);
         accel = PhysicsFormula.Accel_From_Force(universialForce, Mass);
-
+        Debug.Log(universialForce.Magnitude());
+        Debug.Log(accel.Magnitude()+" "+Mass);
         double initVelocity = MathUtility.Sqrt(accel.Magnitude() * dist.Magnitude());
+        Debug.Log(initVelocity);
         Vector3D initVelocityDir = accel.Normalized();
         return initVelocityDir*initVelocity;
+    }
+
+    /// <summary>
+    /// 위치 설정
+    /// </summary>
+    private void SetPosition(Vector3D position)
+    {
+        Debug.Log("위치 "+position.x+" "+position.y+" "+position.z);
+
+        this.gameObject.transform.position = new Vector3((float)position.x,(float)position.y,(float) position.z);
     }
 }
