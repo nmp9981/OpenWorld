@@ -24,7 +24,16 @@ public struct Vector3D
         => new Vector3D(a.x*b, a.y *b, a.z *b);
     public static Vector3D operator /(Vector3D a, double b)
         => new Vector3D(a.x / b, a.y / b, a.z / b);
-    
+
+    /// <summary>
+    /// øµ∫§≈Õ
+    /// </summary>
+    /// <returns></returns>
+    public static Vector3D ZeroVector()
+    {
+        return new Vector3D(0, 0, 0);
+    }
+
     /// <summary>
     /// ≈©±‚
     /// </summary>

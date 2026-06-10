@@ -5,6 +5,7 @@ public class PlanetInfo : MonoBehaviour
 {
     public SolarInfo centerPlanet;
 
+    public string planetName;
     public double Mass;
     public double Radius;
 
@@ -28,9 +29,7 @@ public class PlanetInfo : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        dist = centerPlanet.position - this.position;
-        universialForce = PhysicsFormula.Force_UniversalGravitation(dist, centerPlanet.Mass, Mass);
-        accel = PhysicsFormula.Accel_From_Force(universialForce,Mass);
+        accel = TotalAccel();
         velocity += MathUtility.Integrate(accel, Time.fixedTimeAsDouble);
         position += MathUtility.Integrate(velocity, Time.fixedTimeAsDouble);
         SetPosition(position);
@@ -46,6 +45,25 @@ public class PlanetInfo : MonoBehaviour
         double initVelocity = MathUtility.Sqrt(accel.Magnitude() * dist.Magnitude());
         Vector3D initVelocityDir = Vector3D.Cross(orbitNormalDir,dist).Normalized();
         return initVelocityDir*initVelocity;
+    }
+
+    /// <summary>
+    /// 총 가속도
+    /// </summary>
+    private Vector3D TotalAccel()
+    {
+        Vector3D totalAccel = Vector3D.ZeroVector();
+
+        foreach(var planet in PlanerManager.Instance._planetList)
+        {
+            //자기자신은 패스
+            if (planet.planetName == planetName) continue;
+
+            Vector3D radius = this.position - planet.position;
+            Vector3D force = PhysicsFormula.Force_UniversalGravitation(radius, planet.Mass, Mass);
+            totalAccel += PhysicsFormula.Accel_From_Force(force, Mass);
+        }
+        return totalAccel;
     }
 
     /// <summary>
