@@ -34,12 +34,15 @@ public static class MathUtility
     public static double Sqrt(double x)
     {
         if (x < 0) x = Abs(x);
+        if (x == 0) return 0;
 
         double rootX = x;
-        for (int i = 0; i < 11; i++)
+        double prev;
+        do
         {
-            rootX = (rootX + (x / rootX)) *0.5;
-        }
+            prev = rootX;
+            rootX = (rootX + (x / rootX)) * 0.5;
+        } while (Abs(rootX-prev)>ConstUtility.Epcilon12);
         return rootX;
     }
 

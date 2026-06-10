@@ -1,3 +1,4 @@
+[System.Serializable]
 public struct Vector3D
 {
     public double x, y, z;
@@ -54,7 +55,7 @@ public struct Vector3D
     /// <param name="a"></param>
     /// <param name="b"></param>
     /// <returns></returns>
-    public double Dot(Vector3D a, Vector3D b)
+    public static double Dot(Vector3D a, Vector3D b)
     {
         return a.x*b.x+a.y*b.y+a.z*b.z;
     }
@@ -65,7 +66,7 @@ public struct Vector3D
     /// <param name="a"></param>
     /// <param name="b"></param>
     /// <returns></returns>
-    public Vector3D Cross(Vector3D a, Vector3D b)
+    public static Vector3D Cross(Vector3D a, Vector3D b)
     {
         double xi = a.y * b.z - a.z * b.y;
         double yj = a.x * b.z - a.z * b.x;

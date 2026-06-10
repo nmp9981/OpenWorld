@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PlanetInfo : MonoBehaviour
@@ -13,17 +14,21 @@ public class PlanetInfo : MonoBehaviour
     public Vector3D velocity;
     public Vector3D dist;
 
+    public Vector3D orbitNormalDir;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        this.position = new Vector3D(this.transform.position.x,0,0);
+        this.position = new Vector3D(this.transform.position.x,0, this.transform.position.z);
         dist = centerPlanet.position - this.position;
+        orbitNormalDir = new Vector3D(0, 1, 0);
         velocity = SettingInitVelocity();
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
+        dist = centerPlanet.position - this.position;
         universialForce = PhysicsFormula.Force_UniversalGravitation(dist, centerPlanet.Mass, Mass);
         accel = PhysicsFormula.Accel_From_Force(universialForce,Mass);
         velocity += MathUtility.Integrate(accel, Time.fixedTimeAsDouble);
@@ -38,11 +43,8 @@ public class PlanetInfo : MonoBehaviour
     {
         universialForce = PhysicsFormula.Force_UniversalGravitation(dist, centerPlanet.Mass, Mass);
         accel = PhysicsFormula.Accel_From_Force(universialForce, Mass);
-        Debug.Log(universialForce.Magnitude());
-        Debug.Log(accel.Magnitude()+" "+Mass);
         double initVelocity = MathUtility.Sqrt(accel.Magnitude() * dist.Magnitude());
-        Debug.Log(initVelocity);
-        Vector3D initVelocityDir = accel.Normalized();
+        Vector3D initVelocityDir = Vector3D.Cross(orbitNormalDir,dist).Normalized();
         return initVelocityDir*initVelocity;
     }
 

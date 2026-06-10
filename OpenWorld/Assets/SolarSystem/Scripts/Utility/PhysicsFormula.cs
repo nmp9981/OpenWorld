@@ -1,3 +1,5 @@
+using Unity.Collections;
+
 public static class PhysicsFormula
 {
     /// <summary>
@@ -10,7 +12,8 @@ public static class PhysicsFormula
         double rSize = r.Magnitude();
         double down = rSize*rSize;
         double forceSize = up / down;
-        return r*forceSize;
+        Vector3D result = r.Normalized() * forceSize;
+        return result;
     }
 
     /// <summary>
