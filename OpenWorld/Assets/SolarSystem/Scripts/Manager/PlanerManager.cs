@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PlanerManager : MonoBehaviour
 {
@@ -27,10 +28,45 @@ public class PlanerManager : MonoBehaviour
 
     private void FixedUpdate()
     {
-        //여기서 행성 가속도, 위치 계산
-
         //가속도 계산
+        CalAccelEachPlanet();
+        //속도, 위치 계산
+        CalVelocity_Position_EachPlanet();
+        //위치 반영
+        SetPlanetPosition();
+    }
 
-        //위치 계산
+    /// <summary>
+    /// 각 행성의 가속도 계산
+    /// </summary>
+    void CalAccelEachPlanet()
+    {
+        foreach (var planet in _planetList)
+        {
+            planet.accel = planet.TotalAccel();
+        }
+    }
+
+    /// <summary>
+    /// 속도, 위치 계산
+    /// </summary>
+    void CalVelocity_Position_EachPlanet()
+    {
+        foreach (var planet in _planetList)
+        {
+            planet.velocity += MathUtility.Integrate(planet.accel, Time.fixedTimeAsDouble);
+            planet.position += MathUtility.Integrate(planet.velocity, Time.fixedTimeAsDouble);
+        }
+    }
+
+    /// <summary>
+    /// 각 행성별 위치 설정
+    /// </summary>
+    void SetPlanetPosition()
+    {
+        foreach (var planet in _planetList)
+        {
+            planet.SetPosition(planet.position);
+        }
     }
 }

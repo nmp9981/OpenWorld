@@ -26,15 +26,6 @@ public class PlanetInfo : MonoBehaviour
         velocity = SettingInitVelocity();
     }
 
-    // Update is called once per frame
-    void FixedUpdate()
-    {
-        accel = TotalAccel();
-        velocity += MathUtility.Integrate(accel, Time.fixedTimeAsDouble);
-        position += MathUtility.Integrate(velocity, Time.fixedTimeAsDouble);
-        SetPosition(position);
-    }
-
     /// <summary>
     /// 초기 속도 설정
     /// </summary>
@@ -50,7 +41,7 @@ public class PlanetInfo : MonoBehaviour
     /// <summary>
     /// 총 가속도
     /// </summary>
-    private Vector3D TotalAccel()
+    public Vector3D TotalAccel()
     {
         Vector3D totalAccel = Vector3D.ZeroVector();
 
@@ -69,7 +60,7 @@ public class PlanetInfo : MonoBehaviour
     /// <summary>
     /// 위치 설정
     /// </summary>
-    private void SetPosition(Vector3D position)
+    public void SetPosition(Vector3D position)
     {
         Debug.Log("위치 "+position.x+" "+position.y+" "+position.z);
 
