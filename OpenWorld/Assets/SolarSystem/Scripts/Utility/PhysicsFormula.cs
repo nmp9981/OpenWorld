@@ -8,6 +8,8 @@ public static class PhysicsFormula
     /// <returns></returns>
     public static Vector3D Force_UniversalGravitation(Vector3D r, double M, double m)
     {
+        if (r.Magnitude() <= ConstUtility.Epcilon12) return Vector3D.ZeroVector();
+
         double up = M * m * ConstUtility.G;//10^-11을 추후 곱해야함
         double rSize = r.Magnitude();
         double down = rSize*rSize;

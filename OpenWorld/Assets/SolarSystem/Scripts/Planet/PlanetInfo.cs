@@ -48,10 +48,11 @@ public class PlanetInfo : MonoBehaviour
         foreach(var planet in PlanerManager.Instance._planetList)
         {
             //자기자신은 패스
-            if (planet.planetName == planetName) continue;
+            if (planet==this) continue;
 
-            Vector3D radius = this.position - planet.position;
-            Vector3D force = PhysicsFormula.Force_UniversalGravitation(radius, planet.Mass, Mass);
+            Vector3D dist = planet.position - this.position;
+            Vector3D force = PhysicsFormula.Force_UniversalGravitation(dist, planet.Mass, Mass);
+            
             totalAccel += PhysicsFormula.Accel_From_Force(force, Mass);
         }
         return totalAccel;
@@ -62,8 +63,6 @@ public class PlanetInfo : MonoBehaviour
     /// </summary>
     public void SetPosition(Vector3D position)
     {
-        Debug.Log("위치 "+position.x+" "+position.y+" "+position.z);
-
         this.gameObject.transform.position = new Vector3((float)position.x,(float)position.y,(float) position.z);
     }
 }
