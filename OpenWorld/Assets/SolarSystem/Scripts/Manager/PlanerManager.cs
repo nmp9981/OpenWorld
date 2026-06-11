@@ -52,8 +52,8 @@ public class PlanerManager : MonoBehaviour
     {
         foreach (var planet in _planetList)
         {
-            planet.velocity += MathUtility.Integrate(planet.accel, Time.fixedTimeAsDouble);
-            planet.position += MathUtility.Integrate(planet.velocity, Time.fixedTimeAsDouble);
+            planet.velocity += MathUtility.Integrate(planet.accel, Time.fixedDeltaTime);
+            planet.position += MathUtility.Integrate(planet.velocity, Time.fixedDeltaTime);
             planet.SetPosition(planet.position);
         }
     }
