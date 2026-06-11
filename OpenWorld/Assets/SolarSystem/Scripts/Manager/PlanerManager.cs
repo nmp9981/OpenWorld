@@ -32,8 +32,6 @@ public class PlanerManager : MonoBehaviour
         CalAccelEachPlanet();
         //속도, 위치 계산
         CalVelocity_Position_EachPlanet();
-        //위치 반영
-        //SetPlanetPosition();
     }
 
     /// <summary>
@@ -44,7 +42,6 @@ public class PlanerManager : MonoBehaviour
         foreach (var planet in _planetList)
         {
             planet.accel = planet.TotalAccel();
-            CalVelocity_Position_EachPlanet();
         }
     }
 
@@ -57,17 +54,6 @@ public class PlanerManager : MonoBehaviour
         {
             planet.velocity += MathUtility.Integrate(planet.accel, Time.fixedTimeAsDouble);
             planet.position += MathUtility.Integrate(planet.velocity, Time.fixedTimeAsDouble);
-            planet.SetPosition(planet.position);
-        }
-    }
-
-    /// <summary>
-    /// 각 행성별 위치 설정
-    /// </summary>
-    void SetPlanetPosition()
-    {
-        foreach (var planet in _planetList)
-        {
             planet.SetPosition(planet.position);
         }
     }

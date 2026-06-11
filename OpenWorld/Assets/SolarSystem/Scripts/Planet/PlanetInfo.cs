@@ -4,6 +4,7 @@ using UnityEngine;
 public class PlanetInfo : MonoBehaviour
 {
     public SolarInfo centerPlanet;
+    public bool isStar;
 
     public string planetName;
     public double Mass;
@@ -23,7 +24,7 @@ public class PlanetInfo : MonoBehaviour
         this.position = new Vector3D(this.transform.position.x,0, this.transform.position.z);
         dist = centerPlanet.position - this.position;
         orbitNormalDir = new Vector3D(0, 1, 0);
-        velocity = SettingInitVelocity();
+        velocity = isStar?Vector3D.ZeroVector():SettingInitVelocity();
     }
 
     /// <summary>
@@ -50,8 +51,8 @@ public class PlanetInfo : MonoBehaviour
             //자기자신은 패스
             if (planet==this) continue;
 
-            Vector3D dist = planet.position - this.position;
-            Vector3D force = PhysicsFormula.Force_UniversalGravitation(dist, planet.Mass, Mass);
+            Vector3D distBetween = planet.position - this.position;
+            Vector3D force = PhysicsFormula.Force_UniversalGravitation(distBetween, planet.Mass, Mass);
             
             totalAccel += PhysicsFormula.Accel_From_Force(force, Mass);
         }
