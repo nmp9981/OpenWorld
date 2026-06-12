@@ -1,6 +1,6 @@
+using NUnit.Framework;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class PlanerManager : MonoBehaviour
 {
@@ -24,25 +24,18 @@ public class PlanerManager : MonoBehaviour
         }
     }
 
+    float dt;
     public List<PlanetInfo> _planetList = new List<PlanetInfo>();
+
+    private void Awake()
+    {
+        dt = Time.fixedDeltaTime;
+    }
 
     private void FixedUpdate()
     {
-        //가속도 계산
-        CalAccelEachPlanet();
         //속도, 위치 계산
         CalVelocity_Position_EachPlanet();
-    }
-
-    /// <summary>
-    /// 각 행성의 가속도 계산
-    /// </summary>
-    void CalAccelEachPlanet()
-    {
-        foreach (var planet in _planetList)
-        {
-            planet.accel = planet.TotalAccel();
-        }
     }
 
     /// <summary>
@@ -50,11 +43,40 @@ public class PlanerManager : MonoBehaviour
     /// </summary>
     void CalVelocity_Position_EachPlanet()
     {
+        //옛 가속도 저장
         foreach (var planet in _planetList)
         {
-            planet.velocity += MathUtility.Integrate(planet.accel, Time.fixedDeltaTime);
-            planet.position += MathUtility.Integrate(planet.velocity, Time.fixedDeltaTime);
+            planet.accelOld = planet.TotalAccel();
+        }
+
+        //위치 갱신
+        foreach (var planet in _planetList)
+        {
+            planet.position += planet.velocity*dt+planet.accelOld*(dt*dt*0.5);
             planet.SetPosition(planet.position);
+        }
+
+        //새 가속도 저장
+        foreach (var planet in _planetList)
+        {
+            planet.accelNew = planet.TotalAccel();
+        }
+
+        //속도 갱신(a는 old, new가속도 평균)
+        foreach (var planet in _planetList)
+        {
+            planet.velocity += (planet.accelOld+planet.accelNew)*0.5*dt;
+        }
+
+        foreach (var planet in _planetList)
+        {
+            if (planet.name == "Earth")
+            {
+                Vector3D d = planet.centerPlanet.position - planet.position;
+                double E = 0.5 * planet.velocity.Magnitude() * planet.velocity.Magnitude()
+                    - ConstUtility.G * 198800 / d.Magnitude();
+                Debug.Log(E);
+            }
         }
     }
 }

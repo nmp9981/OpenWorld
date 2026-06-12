@@ -18,6 +18,10 @@ public class PlanetInfo : MonoBehaviour
 
     public Vector3D orbitNormalDir;
 
+    //적분기용 변수
+    public Vector3D accelOld;
+    public Vector3D accelNew;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
