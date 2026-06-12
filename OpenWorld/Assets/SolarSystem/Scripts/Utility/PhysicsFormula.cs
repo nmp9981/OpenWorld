@@ -12,7 +12,7 @@ public static class PhysicsFormula
 
         double up = M * m * ConstUtility.G;//10^-11을 추후 곱해야함
         double rSize = r.Magnitude();
-        double down = rSize*rSize;
+        double down = rSize*rSize+ConstUtility.Epcilon12;
         double forceSize = up / down;
         Vector3D result = r.Normalized() * forceSize;
         return result;
