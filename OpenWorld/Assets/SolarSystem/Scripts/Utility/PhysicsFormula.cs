@@ -30,4 +30,14 @@ public static class PhysicsFormula
         return force / m;
     }
 
+    /// <summary>
+    /// 운동량 계산
+    /// </summary>
+    /// <param name="m"></param>
+    /// <param name="v"></param>
+    /// <returns></returns>
+    public static Vector3D Cal_Momentum(double m,Vector3D v)
+    {
+        return v * m;
+    }
 }

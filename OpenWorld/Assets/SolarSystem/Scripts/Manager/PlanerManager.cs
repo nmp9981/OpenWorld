@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,10 +31,35 @@ public class PlanerManager : MonoBehaviour
         dt = Time.fixedDeltaTime;
     }
 
+    private void Start()
+    {
+        Cal_TotalMomentum();
+    }
+
     private void FixedUpdate()
     {
         //속도, 위치 계산
         CalVelocity_Position_EachPlanet();
+    }
+
+    /// <summary>
+    /// 전체 운동량 계산
+    /// </summary>
+    void Cal_TotalMomentum()
+    {
+        Vector3D totalMomentum = Vector3D.ZeroVector();
+        PlanetInfo sun = new PlanetInfo();
+        foreach (var planet in _planetList)
+        {
+            if (planet.isStar)
+            {
+                sun = planet;
+                continue;
+            }
+            totalMomentum += PhysicsFormula.Cal_Momentum(planet.Mass, planet.velocity);
+        }
+        //반대방향으로
+        sun.velocity = totalMomentum * (-1.0 / sun.Mass);
     }
 
     /// <summary>

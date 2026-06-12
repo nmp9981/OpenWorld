@@ -25,16 +25,24 @@ public class PlanetInfo : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        this.position = new Vector3D(this.transform.position.x,0, this.transform.position.z);
+        SettingPlanetInfo();
+    }
+
+    /// <summary>
+    /// 행성 초기 정보 세팅
+    /// </summary>
+    public void SettingPlanetInfo()
+    {
+        this.position = new Vector3D(this.transform.position.x, 0, this.transform.position.z);
         dist = centerPlanet.position - this.position;
         orbitNormalDir = new Vector3D(0, 1, 0);
-        velocity = isStar?Vector3D.ZeroVector():SettingInitVelocity();
+        velocity = isStar ? Vector3D.ZeroVector() : SettingInitVelocity();
     }
 
     /// <summary>
     /// 초기 속도 설정
     /// </summary>
-    Vector3D SettingInitVelocity()
+    public Vector3D SettingInitVelocity()
     {
         universialForce = PhysicsFormula.Force_UniversalGravitation(dist, centerPlanet.Mass, Mass);
         accel = PhysicsFormula.Accel_From_Force(universialForce, Mass);
