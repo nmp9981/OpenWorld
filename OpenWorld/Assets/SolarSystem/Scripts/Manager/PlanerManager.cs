@@ -36,6 +36,11 @@ public class PlanerManager : MonoBehaviour
         Cal_TotalMomentum();
     }
 
+    private void Update()
+    {
+        OnOffDrawOrbit();
+    }
+
     private void FixedUpdate()
     {
         //속도, 위치 계산
@@ -100,6 +105,21 @@ public class PlanerManager : MonoBehaviour
                 double E = 0.5 * planet.velocity.Magnitude() * planet.velocity.Magnitude()
                     - ConstUtility.G * 198800 / d.Magnitude();
                 Debug.Log(E);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 궤도 onoff
+    /// </summary>
+    private void OnOffDrawOrbit()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            foreach (var planet in _planetList)
+            {
+                LineRenderer lineRen = planet.gameObject.GetComponent<LineRenderer>();
+                lineRen.enabled = !lineRen.enabled;
             }
         }
     }
