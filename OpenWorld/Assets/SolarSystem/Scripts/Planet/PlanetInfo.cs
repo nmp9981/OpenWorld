@@ -9,6 +9,7 @@ public class PlanetInfo : MonoBehaviour
     public string planetName;
     public double Mass;
     public double Radius;
+    public double eccentricity;//¿ÃΩ…¿≤
 
     public Vector3D position;
     public Vector3D universialForce;
@@ -64,7 +65,7 @@ public class PlanetInfo : MonoBehaviour
         accel = PhysicsFormula.Accel_From_Force(universialForce, Mass);
         double initVelocity = MathUtility.Sqrt(accel.Magnitude() * dist.Magnitude());
         Vector3D initVelocityDir = Vector3D.Cross(orbitNormalDir,dist).Normalized();
-        return initVelocityDir*initVelocity;
+        return initVelocityDir*initVelocity*eccentricity;
     }
 
     /// <summary>
