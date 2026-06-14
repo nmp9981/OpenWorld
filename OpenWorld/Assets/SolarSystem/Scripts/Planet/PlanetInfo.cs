@@ -22,10 +22,26 @@ public class PlanetInfo : MonoBehaviour
     public Vector3D accelOld;
     public Vector3D accelNew;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    //라인렌더러
+    private int pointIdx=0;
+    private int maxPointIndex = 9999;
+    [SerializeField] private LineRenderer lineRenderer;
+
     void Start()
     {
+        SettingLineRenderer();
         SettingPlanetInfo();
+    }
+
+    /// <summary>
+    /// 라인 렌더러 세팅
+    /// </summary>
+    void SettingLineRenderer()
+    {
+        lineRenderer = GetComponent<LineRenderer>();
+        lineRenderer.positionCount = maxPointIndex; // 점의 개수 1개로 설정
+        lineRenderer.startWidth = 1f; // 점의 크기 (시작)
+        lineRenderer.endWidth = 1f;   // 점의 크기 (끝)
     }
 
     /// <summary>
@@ -77,5 +93,8 @@ public class PlanetInfo : MonoBehaviour
     public void SetPosition(Vector3D position)
     {
         this.gameObject.transform.position = new Vector3((float)position.x,(float)position.y,(float) position.z);
+        // (x, y, z) 좌표에 점 그리기
+        lineRenderer.SetPosition(pointIdx%maxPointIndex, this.gameObject.transform.position);
+        pointIdx += 1;
     }
 }
