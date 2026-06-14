@@ -48,7 +48,7 @@ public class PlanerManager : MonoBehaviour
     void Cal_TotalMomentum()
     {
         Vector3D totalMomentum = Vector3D.ZeroVector();
-        PlanetInfo sun = new PlanetInfo();
+        PlanetInfo sun = null;
         foreach (var planet in _planetList)
         {
             if (planet.isStar)
