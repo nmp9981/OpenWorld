@@ -104,7 +104,7 @@ public class PlanerManager : MonoBehaviour
                 Vector3D d = planet.centerPlanet.position - planet.position;
                 double E = 0.5 * planet.velocity.Magnitude() * planet.velocity.Magnitude()
                     - ConstUtility.G * 198800 / d.Magnitude();
-                Debug.Log(E);
+                //Debug.Log(E);
             }
         }
     }
