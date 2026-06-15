@@ -44,8 +44,8 @@ public class CameraSystem : MonoBehaviour
     //ex, 오브젝트가 북서쪽을 향하면 위키 눌렀을 때 북서쪽으로 이동해야함
     private void Move()
     {
-        Vector3 moveVec = this.gameObject.transform.right * hAxis + this.gameObject.transform.forward * vAxis + this.gameObject.transform.up * yMoveAmount;
-        this.gameObject.transform.position += moveVec * moveSpeed * Time.deltaTime;//좌표 이동
+        Vector3 moveVec = mainCamera.transform.right * hAxis + mainCamera.transform.forward * vAxis + mainCamera.transform.up * yMoveAmount;
+        mainCamera.transform.position += moveVec * moveSpeed * Time.deltaTime;//좌표 이동
     }
 
     /// <summary>
@@ -66,12 +66,12 @@ public class CameraSystem : MonoBehaviour
     {
         if (Input.GetMouseButton(1))//마우스 우클릭
         {
-            Vector3 rot = transform.rotation.eulerAngles; // 현재 카메라의 각도를 Vector3로 반환
+            Vector3 rot = mainCamera.transform.rotation.eulerAngles; // 현재 카메라의 각도를 Vector3로 반환
             rot.y += Input.GetAxis("Mouse X") * rotateSpeed; // 마우스 X 위치 * 회전 속도
             rot.x += -1 * Input.GetAxis("Mouse Y") * rotateSpeed; // 마우스 Y 위치 * 회전 속도
             Quaternion q = Quaternion.Euler(rot); // Quaternion으로 변환
             q.z = 0;//z축 고정
-            transform.rotation = Quaternion.Slerp(transform.rotation, q, 2f); // 자연스럽게 회전
+            mainCamera.transform.rotation = Quaternion.Slerp(mainCamera.transform.rotation, q, 2f); // 자연스럽게 회전
         }
     }
 }
