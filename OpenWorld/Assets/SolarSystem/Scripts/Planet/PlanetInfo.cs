@@ -25,7 +25,7 @@ public class PlanetInfo : MonoBehaviour
 
     //라인렌더러
     private int pointIdx=0;
-    private int maxPointIndex = 9999;
+    private int maxPointIndex = 39999;
     [SerializeField] private LineRenderer lineRenderer;
 
     void Start()
@@ -40,9 +40,14 @@ public class PlanetInfo : MonoBehaviour
     void SettingLineRenderer()
     {
         lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = maxPointIndex; // 점의 개수 1개로 설정
+        lineRenderer.positionCount = maxPointIndex;
         lineRenderer.startWidth = 1f; // 점의 크기 (시작)
         lineRenderer.endWidth = 1f;   // 점의 크기 (끝)
+        lineRenderer.startColor = Color.white;
+        lineRenderer.endColor = Color.white;
+
+        lineRenderer.SetPosition(pointIdx, this.gameObject.transform.position);
+        pointIdx++;
     }
 
     /// <summary>
