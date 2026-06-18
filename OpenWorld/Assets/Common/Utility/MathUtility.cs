@@ -56,4 +56,61 @@ public static class MathUtility
     {
         return vec0 * dt;
     }
+
+    /// <summary>
+    /// 팩토리얼
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Fact(double x)
+    {
+        double res = 1;
+        for(int i = (int)x; i > 1; i--)
+        {
+            res *= i;
+        }
+        return res;
+    }
+
+    #region 삼각함수
+    /// <summary>
+    /// Sin 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Sin(double x)
+    {
+        double x2 = x * x;
+        double x4 = x2 * x2;
+        double second = (x * x * x)/Fact(3);
+        double third = (x2 * x2 * x) / Fact(5);
+        double fourth = (x4 * x2 * x) / Fact(7);
+        double fifth = (x4 * x4 * x) / Fact(9);
+        return x-second + third - fourth + fifth;
+    }
+    /// <summary>
+    /// Cos 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Cos(double x)
+    {
+        double x2 = x * x;
+        double x4 = x2 * x2;
+        double second = x2 / Fact(2);
+        double third = x4 / Fact(4);
+        double fourth = (x2*x4) / Fact(6);
+        double fifth = (x4 * x4) / Fact(8);
+        return x - second + third - fourth + fifth;
+    }
+    /// <summary>
+    /// Tan 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Tan(double x)
+    {
+        return Sin(x) / Cos(x);
+    }
+    #endregion
 }

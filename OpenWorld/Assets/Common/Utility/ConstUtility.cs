@@ -7,7 +7,9 @@ public static class ConstUtility
     public const double AU = 150000000000;
     //중력 상수
     public const double G = 6.67387;
-    
+    //중력 가속도
+    public const double gravity = 9.81;
+
     //거듭제곱 상수
     public const double Epcilon12 = 1e-12;
     public const double PowM11 = 1e-11;
