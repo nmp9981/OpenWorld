@@ -73,7 +73,7 @@ public static class PhysicsFormula
         //분모
         double down2 = l2 * (2 * m1 + m2 - m2 * MathUtility.Cos(2 * deltaTheta));
         //분자
-        double upper21 = (m1 + m2) * state.angleVelocity1 * state.angleVelocity1 * l1; ;
+        double upper21 = (m1 + m2) * state.angleVelocity1 * state.angleVelocity1 * l1;
         double upper22 = ConstUtility.gravity * (m1 + m2) * MathUtility.Cos(state.angle1);
         double upper23 = state.angleVelocity2 * state.angleVelocity2 * l2 * m2 * MathUtility.Cos(deltaTheta);
         double upperAccel2 = 2 * MathUtility.Sin(deltaTheta) * (upper21 + upper22 + upper23);

@@ -46,27 +46,9 @@ public class DoublePenduiumManager : MonoBehaviour
     public PenduiumState RK4_theta(PenduiumState y, double dt)
     {
         PenduiumDerived k1 = Cal_DoublePendulum_AnaleAccel_theta(y);
-        PenduiumState k2_m = new PenduiumState();
-        k2_m.angle1 = y.angle1 +dt*0.5* k1.d_angle1;
-        k2_m.angleVelocity1 = y.angleVelocity1 + dt * 0.5 * k1.d_angleVelocity1;
-        k2_m.angle2 = y.angle2 + dt * 0.5 * k1.d_angle2;
-        k2_m.angleVelocity2 = y.angleVelocity2 + dt * 0.5 * k1.d_angleVelocity2;
-
-        PenduiumDerived k2 = Cal_DoublePendulum_AnaleAccel_theta(k2_m);
-        PenduiumState k3_m = new PenduiumState();
-        k3_m.angle1 = y.angle1 + dt * 0.5 * k2.d_angle1;
-        k3_m.angleVelocity1 = y.angleVelocity1 + dt * 0.5 * k2.d_angleVelocity1;
-        k3_m.angle2 = y.angle2 + dt * 0.5 * k2.d_angle2;
-        k3_m.angleVelocity2 = y.angleVelocity2 + dt * 0.5 * k2.d_angleVelocity2;
-
-        PenduiumDerived k3 = Cal_DoublePendulum_AnaleAccel_theta(k3_m);
-        PenduiumState k4_m = new PenduiumState();
-        k4_m.angle1 = y.angle1 + dt * k3.d_angle1;
-        k4_m.angleVelocity1 = y.angleVelocity1 + dt *k3.d_angleVelocity1;
-        k4_m.angle2 = y.angle2 + dt *k3.d_angle2;
-        k4_m.angleVelocity2 = y.angleVelocity2 + dt * k3.d_angleVelocity2;
-
-        PenduiumDerived k4 = Cal_DoublePendulum_AnaleAccel_theta(k4_m);
+        PenduiumDerived k2 = Cal_DoublePendulum_AnaleAccel_theta(AddScaled(y, k1, dt));   
+        PenduiumDerived k3 = Cal_DoublePendulum_AnaleAccel_theta(AddScaled(y, k2, dt));
+        PenduiumDerived k4 = Cal_DoublePendulum_AnaleAccel_theta(AddScaled(y, k3, dt));
        
         PenduiumState yNext = new PenduiumState();
         yNext.angle1 = y.angle1 + (dt / 6) * (k1.d_angle1 + 2 * k2.d_angle1 + 2 * k3.d_angle1 + k4.d_angle1);
@@ -85,5 +67,24 @@ public class DoublePenduiumManager : MonoBehaviour
     public PenduiumDerived Cal_DoublePendulum_AnaleAccel_theta(PenduiumState y)
     {
         return PhysicsFormula.DoublePendulum_AnaleAccel(l1,l2,m1,m2,y);
+    }
+
+    /// <summary>
+    /// 헬퍼 함수
+    /// 상태 + 도함수 * h → 새 상태
+    /// </summary>
+    /// <param name="y"></param>
+    /// <param name="k"></param>
+    /// <param name="h"></param>
+    /// <returns></returns>
+    PenduiumState AddScaled(PenduiumState y, PenduiumDerived k, double dt)
+    {
+        // 4성분 각각: y.angleX + dt * k.d_angleX
+        y.angle1 = y.angle1 + dt * 0.5 * k.d_angle1;
+        y.angleVelocity1 = y.angleVelocity1 + dt * 0.5 * k.d_angleVelocity1;
+        y.angle2 = y.angle2 + dt * 0.5 * k.d_angle2;
+        y.angleVelocity2 = y.angleVelocity2 + dt * 0.5 * k.d_angleVelocity2;
+
+        return y;
     }
 }
