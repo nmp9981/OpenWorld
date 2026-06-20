@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Resources;
 using System.Transactions;
 using Unity.Collections;
@@ -83,7 +84,6 @@ public static class PhysicsFormula
         newDerived.d_angle1 = state.angleVelocity1;
         newDerived.d_angleVelocity2 = upperAccel2 / down2;
         newDerived.d_angle2 = state.angleVelocity2;
-
         return newDerived;
     }
 }

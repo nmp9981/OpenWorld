@@ -1,3 +1,4 @@
+using Unity.Mathematics;
 using UnityEngine;
 
 public static class MathUtility
@@ -72,6 +73,21 @@ public static class MathUtility
         return res;
     }
 
+    /// <summary>
+    /// 내림 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Floor(double x)
+    {
+        long intX = (long)x;
+        if(x<0 && intX != x)//음수 보정
+        {
+            intX -= 1;
+        }
+        return (double) intX;
+    }
+
     #region 삼각함수
     /// <summary>
     /// Sin 함수
@@ -80,6 +96,9 @@ public static class MathUtility
     /// <returns></returns>
     public static double Sin(double x)
     {
+        double twoPi = 2 * ConstUtility.PI;
+        x = x - twoPi * Floor((x + ConstUtility.PI) / twoPi);
+
         double x2 = x * x;
         double x4 = x2 * x2;
         double second = (x * x * x)/Fact(3);
@@ -95,13 +114,16 @@ public static class MathUtility
     /// <returns></returns>
     public static double Cos(double x)
     {
+        double twoPi = 2 * ConstUtility.PI;
+        x = x - twoPi * Floor((x + ConstUtility.PI) / twoPi);
+
         double x2 = x * x;
         double x4 = x2 * x2;
         double second = x2 / Fact(2);
         double third = x4 / Fact(4);
         double fourth = (x2*x4) / Fact(6);
         double fifth = (x4 * x4) / Fact(8);
-        return x - second + third - fourth + fifth;
+        return 1 - second + third - fourth + fifth;
     }
     /// <summary>
     /// Tan 함수

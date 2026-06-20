@@ -10,6 +10,9 @@ public static class ConstUtility
     //중력 가속도
     public const double gravity = 9.81;
 
+    //원주율
+    public const double PI = 3.141592;
+
     //거듭제곱 상수
     public const double Epcilon12 = 1e-12;
     public const double PowM11 = 1e-11;
