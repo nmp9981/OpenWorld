@@ -88,6 +88,21 @@ public static class MathUtility
         return (double) intX;
     }
 
+    /// <summary>
+    /// 올림 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Ceil(double x)
+    {
+        long intX = (long)x;
+        if (x < 0 && intX != x)//음수 보정
+        {
+            return (double)intX;
+        }
+        return (double)intX+1;
+    }
+
     #region 삼각함수
     /// <summary>
     /// Sin 함수
