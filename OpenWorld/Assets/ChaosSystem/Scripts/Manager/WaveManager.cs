@@ -50,6 +50,7 @@ public class WaveManager : MonoBehaviour
         {
             currentWaveState = RK4_Wave(currentWaveState, fixedDt);
         }
+        DrawWavePosition(currentWaveState);
     }
 
     /// <summary>
@@ -74,21 +75,6 @@ public class WaveManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 라인 렌더러 세팅
-    /// </summary>
-    void SettingLineRenderer()
-    {
-        lineRenderer.positionCount = maxPointIndex;
-        lineRenderer.startWidth = 0.05f; // 점의 크기 (시작)
-        lineRenderer.endWidth = 0.05f;   // 점의 크기 (끝)
-        lineRenderer.startColor = Color.white;
-        lineRenderer.endColor = Color.white;
-
-        lineRenderer.SetPosition(pointIdx, this.gameObject.transform.position);
-        pointIdx++;
-    }
-
-    /// <summary>
     /// RK4 적분
     /// </summary>
     /// <param name="y"></param>
@@ -100,8 +86,12 @@ public class WaveManager : MonoBehaviour
         WaveDerived k3 = Cal_WaveState(AddScaled(y, k2, dt * 0.5));
         WaveDerived k4 = Cal_WaveState(AddScaled(y, k3, dt));
 
+        //배열이니 할당을 해야함
         WaveState yNext = new WaveState();
-        for(int i = 0; i <= N; i++)
+        yNext.u = new double[N + 1];
+        yNext.v = new double[N + 1];
+
+        for (int i = 0; i <= N; i++)
         {
             yNext.u[i] = y.u[i]+ (dt / 6) * (k1.du[i] + 2 * k2.du[i] + 2 * k3.du[i] + k4.du[i]);
             yNext.v[i] = y.v[i]+ (dt / 6)*(k1.dv[i] + 2 * k2.dv[i] + 2 * k3.dv[i] + k4.dv[i]);
@@ -164,4 +154,34 @@ public class WaveManager : MonoBehaviour
 
         return result;
     }
+
+    #region 시각화
+    /// <summary>
+    /// 라인 렌더러 세팅
+    /// </summary>
+    void SettingLineRenderer()
+    {
+        lineRenderer = GetComponent<LineRenderer>();
+        lineRenderer.positionCount = N+1;
+        lineRenderer.startWidth = 0.05f; // 점의 크기 (시작)
+        lineRenderer.endWidth = 0.05f;   // 점의 크기 (끝)
+        lineRenderer.startColor = Color.white;
+        lineRenderer.endColor = Color.white;
+
+        lineRenderer.SetPosition(pointIdx, this.gameObject.transform.position);
+    }
+
+    /// <summary>
+    /// 파동 위치 그리기
+    /// </summary>
+    void DrawWavePosition(WaveState current)
+    {
+        for (int i = 0; i <= N; i++)
+        {
+            float x = (float)(i * dx);
+            float y = (float)current.u[i];
+            lineRenderer.SetPosition(i, new Vector3(x, y, 0));
+        }
+    }
+    #endregion
 }
