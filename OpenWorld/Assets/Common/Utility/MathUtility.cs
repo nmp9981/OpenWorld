@@ -65,6 +65,9 @@ public static class MathUtility
     /// <returns></returns>
     public static double Fact(double x)
     {
+        //0!, 1!
+        if (x < 2) return 1;
+
         double res = 1;
         for(int i = (int)x; i > 1; i--)
         {
@@ -116,11 +119,16 @@ public static class MathUtility
 
         double x2 = x * x;
         double x4 = x2 * x2;
+        double x8 = x4 * x4;
         double second = (x * x * x)/Fact(3);
         double third = (x2 * x2 * x) / Fact(5);
         double fourth = (x4 * x2 * x) / Fact(7);
-        double fifth = (x4 * x4 * x) / Fact(9);
-        return x-second + third - fourth + fifth;
+        double fifth = (x8 * x) / Fact(9);
+        double sixth = (x8 * x2*x) / Fact(11);
+        double seventh = (x8 * x4*x) / Fact(13);
+        double eightth = (x8 * x4 * x2*x) / Fact(15);
+
+        return x -second + third - fourth + fifth-sixth+seventh-eightth;
     }
     /// <summary>
     /// Cos 함수
@@ -134,11 +142,17 @@ public static class MathUtility
 
         double x2 = x * x;
         double x4 = x2 * x2;
+        double x8 = x4 * x4;
         double second = x2 / Fact(2);
         double third = x4 / Fact(4);
         double fourth = (x2*x4) / Fact(6);
-        double fifth = (x4 * x4) / Fact(8);
-        return 1 - second + third - fourth + fifth;
+        double fifth = x8 / Fact(8);
+        double sixth = (x8 * x2) / Fact(10);
+        double seventh = (x8* x4) / Fact(12);
+        double eightth = (x8 * x4 * x2) / Fact(14);
+        double nineth = (x8 * x8) / Fact(16);
+
+        return 1 - second + third - fourth + fifth-sixth+seventh-eightth+nineth;
     }
     /// <summary>
     /// Tan 함수

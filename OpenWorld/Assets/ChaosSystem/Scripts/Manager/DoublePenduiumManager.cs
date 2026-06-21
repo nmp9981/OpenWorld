@@ -31,6 +31,9 @@ public class DoublePenduiumManager : MonoBehaviour
 
     [SerializeField] private LineRenderer lineRenderer;
 
+
+    double e0;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -40,6 +43,9 @@ public class DoublePenduiumManager : MonoBehaviour
         pivot = Vector3.zero;//고정점
         SettingInitCase();
         SettingLineRenderer();
+
+        e0 = Energy(currentState);//초기 에너지
+        
     }
 
     // Update is called once per frame
@@ -51,8 +57,10 @@ public class DoublePenduiumManager : MonoBehaviour
         {
             currentState = RK4_theta(currentState, dt);
         }
-        Debug.Log(Energy(currentState));
+        double drift =MathUtility.Abs(Energy(currentState) - e0) / MathUtility.Abs(e0);
+        Debug.Log(drift);
         SetPosition(currentState);
+        //TestCos();
     }
 
     /// <summary>
@@ -155,5 +163,16 @@ public class DoublePenduiumManager : MonoBehaviour
         double V = -(m1 + m2) * ConstUtility.gravity * l1 * MathUtility.Cos(s.angle1)
                  - m2 * ConstUtility.gravity * l2 * MathUtility.Cos(s.angle2);
         return T + V;
+    }
+    void TestCos()
+    {
+        double[] testX = { 0, 0.5, 1.0, 1.57, 2.0, 3.0, 3.14, -2.0, -3.0, 5.0, 10.0, 50.0 };
+        foreach (double x in testX)
+        {
+            double mine = MathUtility.Cos(x);
+            double real = System.Math.Cos(x);
+            double err = System.Math.Abs(mine - real);
+            Debug.Log($"x={x}: 내값={mine:F8}, 표준={real:F8}, 오차={err:E3}");
+        }
     }
 }
