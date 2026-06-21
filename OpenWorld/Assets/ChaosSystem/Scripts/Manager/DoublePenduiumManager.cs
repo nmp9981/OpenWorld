@@ -58,7 +58,7 @@ public class DoublePenduiumManager : MonoBehaviour
             currentState = RK4_theta(currentState, dt);
         }
         double drift =MathUtility.Abs(Energy(currentState) - e0) / MathUtility.Abs(e0);
-        Debug.Log(drift);
+        //Debug.Log(drift);
         SetPosition(currentState);
         //TestCos();
     }
