@@ -58,7 +58,7 @@ public class WaveManager : MonoBehaviour
     /// </summary>
     void SettingParemeter()
     {
-        N = 100;L = 1;c = 1;
+        N = 100;L = 3;c = 5;
         dx = L / N;
         dt = 0.5 * dx / c;
 
