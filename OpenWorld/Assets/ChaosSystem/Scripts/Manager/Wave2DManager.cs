@@ -26,6 +26,7 @@ public class Wave2DManager : MonoBehaviour
     double dy;
     double c;       // 파동 속도
     double dt;      // 시간 스텝 (CFL로 dx에 묶임)
+    double reverseRoot2;
 
     WaveState2D currentWaveState;
     WaveDerived2D currentWaveDerived;
@@ -47,10 +48,17 @@ public class Wave2DManager : MonoBehaviour
     {
         int subStep = 8;
         double fixedDt = Time.fixedDeltaTime / subStep;
+        //제약 조건
+        if (c * fixedDt > dx * reverseRoot2)
+        {
+            fixedDt = (dx * reverseRoot2) / c;
+        }
+        //루프 시작
         for (int i = 0; i < subStep; i++)
         {
             currentWaveState = RK4_Wave2D(currentWaveState, fixedDt);
         }
+        //시각화
         DrawWavePosition(currentWaveState);
     }
 
@@ -63,18 +71,20 @@ public class Wave2DManager : MonoBehaviour
         dx = L / N;
         dy = L / N;
         dt = 0.5 * dx / c;
+        reverseRoot2 = 0.7071068;
 
-        currentWaveState.u = new double[N + 1,2];
-        currentWaveState.v = new double[N + 1,2];
-        currentWaveDerived.du = new double[N + 1,2];
-        currentWaveDerived.dv = new double[N + 1,2];
+        currentWaveState.u = new double[N + 1,N+1];
+        currentWaveState.v = new double[N + 1,N+1];
+        currentWaveDerived.du = new double[N + 1,N+1];
+        currentWaveDerived.dv = new double[N + 1,N+1];
 
         for (int i = 0; i <= N; i++)
         {
-            currentWaveState.u[i,0] = MathUtility.Sin(ConstUtility.PI * (i * dx) / L);
-            currentWaveState.u[i, 1] = MathUtility.Sin(ConstUtility.PI * (i * dy) / L);
-            currentWaveState.v[i,0] = 0;
-            currentWaveState.v[i, 1] = 0;
+            for(int j = 0; j <= N; j++)
+            {
+                currentWaveState.u[i, j] = MathUtility.Sin(ConstUtility.PI * (i * dx) / L)* MathUtility.Sin(ConstUtility.PI * (j * dy) / L);
+                currentWaveState.v[i, j] = 0;
+            }
         }
     }
 
@@ -92,12 +102,12 @@ public class Wave2DManager : MonoBehaviour
 
         //배열이니 할당을 해야함
         WaveState2D yNext = new WaveState2D();
-        yNext.u = new double[N + 1,2];
-        yNext.v = new double[N + 1,2];
+        yNext.u = new double[N + 1,N+1];
+        yNext.v = new double[N + 1,N+1];
 
         for (int i = 0; i <= N; i++)
         {
-            for(int j = 0; j <= 2; j++)
+            for(int j = 0; j <= N; j++)
             {
                 yNext.u[i,j] = y.u[i,j] + (dt / 6) * (k1.du[i,j] + 2 * k2.du[i,j] + 2 * k3.du[i,j] + k4.du[i,j]);
                 yNext.v[i,j] = y.v[i,j] + (dt / 6) * (k1.dv[i,j] + 2 * k2.dv[i,j] + 2 * k3.dv[i,j] + k4.dv[i,j]);
@@ -129,11 +139,11 @@ public class Wave2DManager : MonoBehaviour
         //배열을 새로 만들어서 할당
         //구조체는 문제없지만 그 안이 배열이 참조타입이다.
         WaveState2D result = new WaveState2D();
-        result.u = new double[N + 1,2];
-        result.v = new double[N + 1,2];
+        result.u = new double[N + 1,N+1];
+        result.v = new double[N + 1,N+1];
         for (int i = 0; i <= N; i++)
         {
-            for(int j = 0; j < 2; j++)
+            for(int j = 0; j <= N; j++)
             {
                 result.u[i,j] = y.u[i,j] + dt * k.du[i,j];
                 result.v[i,j] = y.v[i,j] + dt * k.dv[i,j];
@@ -150,24 +160,24 @@ public class Wave2DManager : MonoBehaviour
     WaveDerived2D Cal_Pos_Velocity(WaveState2D y)
     {
         WaveDerived2D result = new WaveDerived2D();
-        result.du = new double[N + 1,2];
-        result.dv = new double[N + 1,2];
+        result.du = new double[N + 1,N+1];
+        result.dv = new double[N + 1,N+1];
         for (int i = 1; i < N; i++)
         {
-            for(int j = 0;j < 2; j++)
+            for(int j = 0;j < N; j++)
             {
                 double h = dx * dx;
                 double ch = (c * c) / h;
 
-                result.du[i, j] = ch * (y.u[i + 1, j] - 4 * y.u[i, j] - y.u[i - 1, j] + y.u[i, j + 1] - y.u[i,j-1]);
-                result.du[i, j] = y.v[i,j];
+                result.du[i, j] = y.v[i, j];
+                result.dv[i, j] = ch * (y.u[i + 1, j] - 4 * y.u[i, j] + y.u[i - 1, j] + y.u[i, j + 1] + y.u[i,j-1]);
             }
         }
         //끝점
         result.du[0,0] = 0; result.dv[0,0] = 0;
         result.du[N,0] = 0; result.dv[N,0] = 0;
-        result.du[0,1] = 0; result.dv[0,1] = 0;
-        result.du[N,1] = 0; result.dv[N,1] = 0;
+        result.du[0,N] = 0; result.dv[0,N] = 0;
+        result.du[N,N] = 0; result.dv[N,N] = 0;
 
         return result;
     }
@@ -195,13 +205,13 @@ public class Wave2DManager : MonoBehaviour
     {
         for (int i = 0; i <= N; i++)
         {
-            float x = (float)(i * dx);
-            float y = (float)current.u[i, 0];
-            lineRenderer.SetPosition(i, new Vector3(x, y, 0));
-
-            y = (float)(i*dy);
-            x = (float)current.u[i,1];
-            lineRenderer.SetPosition(i, new Vector3(x, y, 0));
+            for(int j = 0; j <= N; j++)
+            {
+                float x = (float)(i * dx);
+                float y = (float)(i * dy);
+                float z = (float)current.v[i, j];
+                lineRenderer.SetPosition(i, new Vector3(x, y, z));
+            }
         }
     }
     #endregion
