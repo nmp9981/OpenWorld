@@ -34,7 +34,11 @@ public class Wave2DManager : MonoBehaviour
     int pointIdx = 0;
     int maxPointIndex;
 
-    [SerializeField] private LineRenderer lineRenderer;
+    [SerializeField] private MeshFilter meshFilter;
+    [SerializeField] private MeshRenderer meshRenderer;
+    Mesh mesh;
+    Vector3[] vertices;
+    int[] triangles;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -60,6 +64,7 @@ public class Wave2DManager : MonoBehaviour
         }
         //시각화
         DrawWavePosition(currentWaveState);
+        Debug.Log(currentWaveState.u[N/2,N/2]);
     }
 
     /// <summary>
@@ -164,7 +169,7 @@ public class Wave2DManager : MonoBehaviour
         result.dv = new double[N + 1,N+1];
         for (int i = 1; i < N; i++)
         {
-            for(int j = 0;j < N; j++)
+            for(int j = 1;j < N; j++)
             {
                 double h = dx * dx;
                 double ch = (c * c) / h;
@@ -173,12 +178,14 @@ public class Wave2DManager : MonoBehaviour
                 result.dv[i, j] = ch * (y.u[i + 1, j] - 4 * y.u[i, j] + y.u[i - 1, j] + y.u[i, j + 1] + y.u[i,j-1]);
             }
         }
-        //끝점
-        result.du[0,0] = 0; result.dv[0,0] = 0;
-        result.du[N,0] = 0; result.dv[N,0] = 0;
-        result.du[0,N] = 0; result.dv[0,N] = 0;
-        result.du[N,N] = 0; result.dv[N,N] = 0;
-
+        //끝변
+        for(int i = 0; i <= N; i++)
+        {
+            result.du[0, i] = 0; result.dv[0, i] = 0;
+            result.du[N, i] = 0; result.dv[N, i] = 0;
+            result.du[i, 0] = 0; result.dv[i, 0] = 0;
+            result.du[i, N] = 0; result.dv[i, N] = 0;
+        }
         return result;
     }
 
@@ -188,14 +195,49 @@ public class Wave2DManager : MonoBehaviour
     /// </summary>
     void SettingLineRenderer()
     {
-        lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = N + 1;
-        lineRenderer.startWidth = 0.05f; // 점의 크기 (시작)
-        lineRenderer.endWidth = 0.05f;   // 점의 크기 (끝)
-        lineRenderer.startColor = Color.white;
-        lineRenderer.endColor = Color.white;
+        meshFilter = GetComponent<MeshFilter>();
+        meshRenderer = GetComponent<MeshRenderer>();
 
-        lineRenderer.SetPosition(pointIdx, this.gameObject.transform.position);
+        // 실제 필요한 사각형 개수에 따라 배열 크기를 조절합니다.
+        int quadCount = (N+1)*(N+1);
+        vertices = new Vector3[quadCount];
+        triangles = new int[N*N*6];
+
+        //정점
+        for (int i = 0; i <= N; i++)
+            for (int j = 0; j <= N; j++)
+                vertices[i * (N + 1) + j] = new Vector3(
+                    (float)(i * dx), 0f, (float)(j * dy));   // 위치. 높이는 갱신때 u로
+
+        //삼각형
+        for (int i = 0; i < N; i++)
+        {
+            for(int j = 0; j < N; j++)
+            {
+                int bl = i * (N + 1) + j;          // 아래-왼쪽
+                int br = (i + 1) * (N + 1) + j;    // 아래-오른쪽
+                int tl = i * (N + 1) + (j + 1);    // 위-왼쪽
+                int tr = (i + 1) * (N + 1) + (j + 1); // 위-오른쪽
+
+                int tIndex = (i * N + j) * 6;
+
+                // 삼각형 인덱스 설정 (하나의 사각형은 2개의 삼각형으로 구성)
+                // 시계 방향(혹은 반시계 방향)으로 정점 인덱스를 연결해야 앞면이 보입니다.
+                triangles[tIndex + 0] = bl;
+                triangles[tIndex + 1] = tr;
+                triangles[tIndex + 2] = br;
+
+                triangles[tIndex + 3] = bl;
+                triangles[tIndex + 4] = tl;
+                triangles[tIndex + 5] = tr;
+            }
+        }
+        // Mesh 데이터 할당
+        mesh = new Mesh();
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
+        mesh.RecalculateNormals();
+        meshFilter.mesh = mesh;   // 한 번만 연결
     }
 
     /// <summary>
@@ -204,15 +246,15 @@ public class Wave2DManager : MonoBehaviour
     void DrawWavePosition(WaveState2D current)
     {
         for (int i = 0; i <= N; i++)
-        {
-            for(int j = 0; j <= N; j++)
-            {
-                float x = (float)(i * dx);
-                float y = (float)(i * dy);
-                float z = (float)current.v[i, j];
-                lineRenderer.SetPosition(i, new Vector3(x, y, z));
-            }
-        }
+            for (int j = 0; j <= N; j++)
+                vertices[i * (N + 1) + j] = new Vector3(
+                    (float)(i * dx),
+                    (float)current.u[i, j],   // 높이 = 변위 u
+                    (float)(j * dy));
+
+        mesh.SetVertices(vertices);     // 정점만 갱신
+        mesh.RecalculateNormals();      // 조명 위해 법선 재계산
+        mesh.RecalculateBounds();       // 컬링 위해 경계 재계산
     }
     #endregion
 }
