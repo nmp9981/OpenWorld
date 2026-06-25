@@ -1,3 +1,4 @@
+using NUnit.Framework.Constraints;
 using UnityEngine;
 
 /// <summary>
@@ -40,6 +41,11 @@ public class Wave2DManager : MonoBehaviour
     Vector3[] vertices;
     int[] triangles;
 
+    //시계열
+    double[] timeSeriesData;
+    int timeSerialUnit = 1024;
+    int timeSerialIndex = 0;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -64,7 +70,14 @@ public class Wave2DManager : MonoBehaviour
         }
         //시각화
         DrawWavePosition(currentWaveState);
-        Debug.Log(currentWaveState.u[N/2,N/2]);
+
+        //시계열
+        timeSeriesData[timeSerialIndex] = currentWaveState.u[N / 2, N / 2];
+        timeSerialIndex += 1;
+        if (timeSerialIndex == timeSerialUnit)
+        {
+            DiscreteTimeFourier(timeSeriesData);
+        }
     }
 
     /// <summary>
@@ -91,6 +104,9 @@ public class Wave2DManager : MonoBehaviour
                 currentWaveState.v[i, j] = 0;
             }
         }
+
+        //시계열 데이터 세팅
+        timeSeriesData = new double[N*timeSerialUnit];
     }
 
     /// <summary>
@@ -188,6 +204,33 @@ public class Wave2DManager : MonoBehaviour
         }
         return result;
     }
+
+    #region DFT
+    /// <summary>
+    /// 이산 푸리에 급수
+    /// </summary>
+    Complex[] DiscreteTimeFourier(double[] data)
+    {
+        int Ns = data.Length;
+        Complex[] X = new Complex[Ns];
+        for (int k = 0; k < Ns; k++)
+        {
+            Complex xk = Complex.ZeroComplex();
+            for (int i = 0; i < timeSerialUnit; i++)
+            {
+                double coff = (-2 * ConstUtility.PI * k * i) / timeSerialUnit;
+                double cosx = timeSeriesData[i] * MathUtility.Cos(coff);
+                double sinx = timeSeriesData[i] * MathUtility.Sin(coff);
+
+                xk.x += cosx;
+                xk.y += sinx;
+            }
+            X[k] = xk;
+            Debug.Log(k+"    "+X[k].Magnitude());
+        }
+        return X;
+    }
+    #endregion
 
     #region 시각화
     /// <summary>
