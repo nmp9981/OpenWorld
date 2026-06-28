@@ -71,12 +71,21 @@ public class Wave2DManager : MonoBehaviour
         //시각화
         DrawWavePosition(currentWaveState);
 
+        if (timeSerialIndex >= timeSerialUnit) return;
+
         //시계열
         timeSeriesData[timeSerialIndex] = currentWaveState.u[N / 2, N / 2];
         timeSerialIndex += 1;
         if (timeSerialIndex == timeSerialUnit)
         {
-            DiscreteTimeFourier(timeSeriesData);
+            Complex[] a = new Complex[N];
+            Complex[] b= new Complex[N];
+            a = DiscreteTimeFourier(timeSeriesData);
+            b = MathUtility.Cal_FFT(timeSeriesData);
+            Debug.Log(a.Length + " " + b.Length);
+            Debug.Log($"a[0]={a[0].x},{a[0].y}  b[0]={b[0].x},{b[0].y}");
+            Debug.Log($"a[1]={a[1].x},{a[1].y}  b[1]={b[1].x},{b[1].y}");
+            Debug.Log($"a[6]={a[6].x},{a[6].y}  b[6]={b[6].x},{b[6].y}");
         }
     }
 
@@ -106,7 +115,7 @@ public class Wave2DManager : MonoBehaviour
         }
 
         //시계열 데이터 세팅
-        timeSeriesData = new double[N*timeSerialUnit];
+        timeSeriesData = new double[timeSerialUnit];
     }
 
     /// <summary>
@@ -216,9 +225,9 @@ public class Wave2DManager : MonoBehaviour
         for (int k = 0; k < Ns; k++)
         {
             Complex xk = Complex.ZeroComplex();
-            for (int i = 0; i < timeSerialUnit; i++)
+            for (int i = 0; i < Ns; i++)
             {
-                double coff = (-2 * ConstUtility.PI * k * i) / timeSerialUnit;
+                double coff = (-2 * ConstUtility.PI * k * i) / Ns;
                 double cosx = timeSeriesData[i] * MathUtility.Cos(coff);
                 double sinx = timeSeriesData[i] * MathUtility.Sin(coff);
 
@@ -226,7 +235,6 @@ public class Wave2DManager : MonoBehaviour
                 xk.y += sinx;
             }
             X[k] = xk;
-            Debug.Log(k+"    "+X[k].Magnitude());
         }
         return X;
     }
