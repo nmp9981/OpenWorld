@@ -79,13 +79,14 @@ public class Wave2DManager : MonoBehaviour
         if (timeSerialIndex == timeSerialUnit)
         {
             Complex[] a = new Complex[N];
-            Complex[] b= new Complex[N];
+            Complex[] specular= new Complex[N];
             a = DiscreteTimeFourier(timeSeriesData);
-            b = MathUtility.Cal_FFT(timeSeriesData);
-            Debug.Log(a.Length + " " + b.Length);
-            Debug.Log($"a[0]={a[0].x},{a[0].y}  b[0]={b[0].x},{b[0].y}");
-            Debug.Log($"a[1]={a[1].x},{a[1].y}  b[1]={b[1].x},{b[1].y}");
-            Debug.Log($"a[6]={a[6].x},{a[6].y}  b[6]={b[6].x},{b[6].y}");
+            specular = MathUtility.Cal_FFT(timeSeriesData);
+
+            for(int idx = 0; idx < specular.Length/2; idx++)
+            {
+                Debug.Log(idx+" " + specular[idx].Magnitude());
+            }
         }
     }
 
@@ -109,7 +110,9 @@ public class Wave2DManager : MonoBehaviour
         {
             for(int j = 0; j <= N; j++)
             {
-                currentWaveState.u[i, j] = MathUtility.Sin(ConstUtility.PI * (i * dx) / L)* MathUtility.Sin(ConstUtility.PI * (j * dy) / L);
+                double mode11 = MathUtility.Sin(ConstUtility.PI * (i * dx) / L) * MathUtility.Sin(ConstUtility.PI * (j * dy) / L);
+                double mode33 = MathUtility.Sin(3*ConstUtility.PI * (i * dx) / L) * MathUtility.Sin(3*ConstUtility.PI * (j * dy) / L);
+                currentWaveState.u[i, j] = mode11 + 0.5 * mode33;
                 currentWaveState.v[i, j] = 0;
             }
         }
