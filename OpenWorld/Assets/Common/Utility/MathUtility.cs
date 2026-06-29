@@ -4,20 +4,6 @@ using UnityEngine;
 public static class MathUtility
 {
     /// <summary>
-    /// 거듭지수 계산
-    /// </summary>
-    /// <param name="a"></param>
-    /// <param name="n"></param>
-    /// <returns></returns>
-    public static double Pow(double a, int n)
-    {
-        if(n==1) return a;
-
-        if(n%2==0) return Pow(a,n/2)*Pow(a,n/2);
-        else return Pow(a, n / 2) * Pow(a, n / 2)*a;
-    }
-
-    /// <summary>
     /// 절댓값 구하기
     /// </summary>
     /// <param name="x"></param>
@@ -105,6 +91,56 @@ public static class MathUtility
         }
         return (double)intX+1;
     }
+
+    #region 지수/로그 함수 
+    /// <summary>
+    /// 거듭지수 계산
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="n"></param>
+    /// <returns></returns>
+    public static double Pow(double a, int n)
+    {
+        if (n == 1) return a;
+
+        if (n % 2 == 0) return Pow(a, n / 2) * Pow(a, n / 2);
+        else return Pow(a, n / 2) * Pow(a, n / 2) * a;
+    }
+    /// <summary>
+    /// 자연로그 계산
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Log(double x)
+    {
+        //범위 예외
+        if (x <= 0) return double.NaN;
+
+        //1
+        if (x == 1) return 0;
+
+        //나머지
+        double sign = 1;
+        if (x > 2)
+        {
+            x = 1 / x;
+            sign = -1;
+        }
+        //계산
+        double x1 = x - 1;
+        double x12 = x1 * x1;
+        double x14 = x12 * x12;
+        double x18 = x14 * x14;
+
+        double res1to4 = x1 - (x12 / 2) + (x12 * x1 / 3) - (x14/4);
+        double res5to8 = (x14*x1/5) - (x14*x12 / 6) + (x14 * x12*x1 / 7) - (x18 / 8);
+        double res9to12 = (x18 * x1 / 9) - (x18 * x12 / 10) + (x18 * x12 * x1 / 11) - (x18*x14 / 12);
+        double res13to16 = (x18*x14 * x1 / 13) - (x18*x14 * x12 / 14) + (x18*x14 * x12 * x1 / 15) - (x18*x18 / 16);
+
+        return sign * (res1to4+res5to8+res9to12+res13to16);
+    }
+
+    #endregion
 
     #region 삼각함수
     /// <summary>
