@@ -227,5 +227,75 @@ public static class MathUtility
         }
         return result;
     }
+    /// <summary>
+    /// 반복 FFT
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public static Complex[] FFT_Iterative(double[] data)
+    {
+        int N = data.Length;
+        Complex[] result = new Complex[N];
+
+        //비트 반전 순서로 배치
+        for(int idx = 0; idx < N; idx++)
+        {
+            result[BitReverse(idx, N)] = new Complex(data[idx],0);
+        }
+
+        //버터플라이
+        for (int size = 2; size <= N; size *= 2)//2^n
+        {
+            for (int start = 0; start < N; start += size)//Size 간격
+            {
+                for (int k = 0; k < size / 2; k++)
+                {
+                    double angle = -2 * ConstUtility.PI * k / size;
+                    Complex wk = new Complex(Cos(angle), Sin(angle));
+
+                    int iEven = start + k;//앞 절반
+                    int iOdd = start + k+size/2;//뒤 절반
+
+                    //옛값 저장
+                    Complex t = wk * result[iOdd];//홀수
+                    Complex u = result[iEven];//짝수
+
+                    //갱신
+                    result[iEven] = u + t;
+                    result[iOdd] = u - t;
+                }
+            }
+        }
+        return result;
+    }
+    /// <summary>
+    /// 비트 반전
+    /// </summary>
+    /// <param name="idx"></param>
+    /// <param name="N"></param>
+    /// <returns></returns>
+    public static int BitReverse(int idx, int N)
+    {
+        int bits = 0;
+        int temp = N;
+
+        //비트 개수
+        while (temp > 1)
+        {
+            bits++;
+            temp >>= 1;
+        }
+
+        //비트 뒤집기
+        int result = 0;
+        for(int i = 0; i < bits; i++)
+        {
+            if ((idx & (1 << i)) != 0)
+            {
+                result |= 1<<(bits-i-1);
+            }
+        }
+        return result;
+    }
     #endregion
 }
