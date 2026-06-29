@@ -81,7 +81,7 @@ public class Wave2DManager : MonoBehaviour
         for(int k = 0; k < spectrumSize; k++)
         {
             float x = k * 0.05f;                          // 가로: 주파수 축
-            float y = (float)MathUtility.Log(1+spectrum[k].Magnitude());     // 세로: 크기
+            float y = (float)MathUtility.Sqrt(spectrum[k].Magnitude());     // 세로: 크기
             lineRenderer.SetPosition(k, new Vector3(x, y, 0));
         }
     }
