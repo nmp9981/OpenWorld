@@ -78,15 +78,23 @@ public class Wave2DManager : MonoBehaviour
         timeSerialIndex += 1;
         if (timeSerialIndex == timeSerialUnit)
         {
-            Complex[] a = new Complex[N];
-            Complex[] specular= new Complex[N];
-            a = DiscreteTimeFourier(timeSeriesData);
-            specular = MathUtility.Cal_FFT(timeSeriesData);
+            Complex[] dft = new Complex[N];
+            Complex[] rec= new Complex[N];
+            Complex[] itr = new Complex[N];
+            dft = DiscreteTimeFourier(timeSeriesData);
+            rec = MathUtility.Cal_FFT(timeSeriesData);
+            itr = MathUtility.FFT_Iterative(timeSeriesData);
 
-            for(int idx = 0; idx < specular.Length/2; idx++)
+            double maxErr_dft_itr = 0;   // DFT vs 반복
+            double maxErr_rec_itr = 0;   // 재귀 vs 반복
+            for (int k = 0; k < N; k++)
             {
-                Debug.Log(idx+" " + specular[idx].Magnitude());
+                double e1 = (dft[k] - itr[k]).Magnitude();
+                double e2 = (rec[k] - itr[k]).Magnitude();
+                if (e1 > maxErr_dft_itr) maxErr_dft_itr = e1;
+                if (e2 > maxErr_rec_itr) maxErr_rec_itr = e2;
             }
+            Debug.Log($"DFT-반복: {maxErr_dft_itr}   재귀-반복: {maxErr_rec_itr}");
         }
     }
 
