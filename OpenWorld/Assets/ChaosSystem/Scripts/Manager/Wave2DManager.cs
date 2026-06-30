@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework.Constraints;
 using System.Globalization;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 /// <summary>
@@ -53,6 +54,8 @@ public class Wave2DManager : MonoBehaviour
 
     //라인 렌더러
     [SerializeField] private LineRenderer lineRenderer;
+    float[] smoothed;
+    float alpha = 0.8f;
     int spectrumSize = 512;   // 1024의 절반 (켤레 대칭)
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -78,10 +81,14 @@ public class Wave2DManager : MonoBehaviour
         Complex[] spectrum = MathUtility.FFT_Iterative(timeSeriesData);
 
         //시각화
-        for(int k = 0; k < spectrumSize; k++)
-        {
-            float x = k * 0.05f;                          // 가로: 주파수 축
-            float y = (float)MathUtility.Sqrt(spectrum[k].Magnitude());     // 세로: 크기
+        for (int k = 0; k < spectrumSize; k++)
+        {                       
+            float newValue = (float)MathUtility.Log(1+spectrum[k].Magnitude());     
+            smoothed[k] = smoothed[k] * alpha + newValue * (1 - alpha);//평활
+
+            float x = k * 0.05f;// 가로: 주파수 축
+            float y = smoothed[k];// 세로: 크기
+            if (!float.IsFinite(y)) y = 0;
             lineRenderer.SetPosition(k, new Vector3(x, y, 0));
         }
     }
@@ -170,6 +177,7 @@ public class Wave2DManager : MonoBehaviour
         //시계열, 버퍼 데이터 세팅
         timeSeriesData = new double[timeSerialUnit];
         sampleBuffer = new float[timeSerialUnit];
+        smoothed = new float[spectrumSize];
     }
 
     /// <summary>

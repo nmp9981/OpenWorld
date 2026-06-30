@@ -119,15 +119,25 @@ public static class MathUtility
         //1
         if (x == 1) return 0;
 
-        //나머지
-        double sign = 1;
-        if (x > 2)
+        //지수,가수 분해
+        double mantissa = x;
+        double arqumenbt = 0;
+        while (mantissa >= 2)
         {
-            x = 1 / x;
-            sign = -1;
+            mantissa = mantissa / 2;
+            arqumenbt += 1;
         }
+        while (mantissa < 1.0) { mantissa *= 2.0; arqumenbt-=1; }
+        // √2 조정: 가수를 [0.707, 1.414)로 더 좁힘
+        double halfCorrection = 0;
+        if (mantissa > ConstUtility.root2)   // √2 ≈ 1.41421356
+        {
+            mantissa /= ConstUtility.root2;
+            halfCorrection = 0.5;            // ln(√2) = ln2/2 만큼 나중에 더함
+        }
+
         //계산
-        double x1 = x - 1;
+        double x1 = mantissa - 1;
         double x12 = x1 * x1;
         double x14 = x12 * x12;
         double x18 = x14 * x14;
@@ -136,8 +146,9 @@ public static class MathUtility
         double res5to8 = (x14*x1/5) - (x14*x12 / 6) + (x14 * x12*x1 / 7) - (x18 / 8);
         double res9to12 = (x18 * x1 / 9) - (x18 * x12 / 10) + (x18 * x12 * x1 / 11) - (x18*x14 / 12);
         double res13to16 = (x18*x14 * x1 / 13) - (x18*x14 * x12 / 14) + (x18*x14 * x12 * x1 / 15) - (x18*x18 / 16);
+        double talorResult = res1to4 + res5to8 + res9to12 + res13to16;
 
-        return sign * (res1to4+res5to8+res9to12+res13to16);
+        return talorResult + (arqumenbt+halfCorrection)*ConstUtility.ln2;
     }
 
     #endregion
