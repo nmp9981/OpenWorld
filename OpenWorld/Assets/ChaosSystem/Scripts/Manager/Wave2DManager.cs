@@ -2,6 +2,7 @@
 using System.Globalization;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// 파동 상태
@@ -52,6 +53,9 @@ public class Wave2DManager : MonoBehaviour
     //오디오
     [SerializeField] private AudioSource audioSource;
 
+    //창함수
+    double[] window;
+
     //라인 렌더러
     [SerializeField] private LineRenderer lineRenderer;
     float[] smoothed;
@@ -64,6 +68,7 @@ public class Wave2DManager : MonoBehaviour
         StartAudio();
         SettingParemeter();
         SettingLineRenderer();
+        SettingWindowFunction();
     }
 
     private void Update()
@@ -74,7 +79,7 @@ public class Wave2DManager : MonoBehaviour
         //double 변환
         for(int i = 0; i < timeSerialUnit; i++)
         {
-            timeSeriesData[i] = sampleBuffer[i];
+            timeSeriesData[i] = sampleBuffer[i]*window[i];
         }
 
         //반복 FFT
@@ -178,6 +183,15 @@ public class Wave2DManager : MonoBehaviour
         timeSeriesData = new double[timeSerialUnit];
         sampleBuffer = new float[timeSerialUnit];
         smoothed = new float[spectrumSize];
+    }
+    /// <summary>
+    /// 창함수 세팅
+    /// </summary>
+    void SettingWindowFunction()
+    {
+        window = new double[timeSerialUnit];
+        for (int n = 0; n < timeSerialUnit; n++)
+            window[n] = 0.5 * (1 - MathUtility.Cos(2 * ConstUtility.PI * n / (timeSerialUnit - 1)));
     }
 
     /// <summary>
