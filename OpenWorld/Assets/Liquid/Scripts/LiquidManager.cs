@@ -55,9 +55,9 @@ public class LiquidManager : MonoBehaviour
         double dt = Time.fixedDeltaTime;
 
         //외력
-        double fx= Input.GetAxis("Mouse X") * sensitivity * dt;
-        double fy= Input.GetAxis("Mouse Y") * sensitivity * dt;
-        AddExternalForce(fx,fy,dt);
+        double fx= Input.GetAxis("Mouse X") * sensitivity*dt;
+        double fy= Input.GetAxis("Mouse Y") * sensitivity*dt;
+        AddExternalForce(fx,fy);
 
         // 확산: 소스 준비
         Copy(curLiquidState.u_prev, curLiquidState.u);
@@ -81,14 +81,14 @@ public class LiquidManager : MonoBehaviour
     /// <summary>
     /// 외력 추가
     /// </summary>
-    void AddExternalForce(double fx, double fy, double dt)
+    void AddExternalForce(double fx, double fy)
     {
         for (int i = 0; i <= N; i++)
         {
             for (int j = 0; j <= N; j++)
             {
-                curLiquidState.u[i, j] += fx * dt;
-                curLiquidState.u[i, j] += fy * dt;
+                curLiquidState.u[i, j] += fx;
+                curLiquidState.u[i, j] += fy;
             }
         }
     }
