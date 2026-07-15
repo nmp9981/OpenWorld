@@ -22,6 +22,8 @@ public class LiquidManager : MonoBehaviour
 
     LiquidState2D curLiquidState;//물 상태
 
+    double fx, fy, dt;
+
     //밀도장
     double[,] dens, dens_prev;
     double diff = 0.0001;              // 밀도 확산율 (파라미터)
@@ -37,13 +39,13 @@ public class LiquidManager : MonoBehaviour
 
     private void Update()
     {
+        InputMouse();
         Render();
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        double dt = Time.fixedDeltaTime;
         LiquidStep(dt);
         DensityStep(dt);
     }
@@ -71,7 +73,10 @@ public class LiquidManager : MonoBehaviour
 
         //텍스터 생성
         tex = new Texture2D(N + 1, N + 1);
-        tex.filterMode = FilterMode.Point;
+        tex.filterMode = FilterMode.Bilinear;
+
+        //시간 간격
+        dt = Time.fixedDeltaTime;
     }
 
     /// <summary>
@@ -79,9 +84,6 @@ public class LiquidManager : MonoBehaviour
     /// </summary>
     void LiquidStep(double dt)
     {
-        //외력, 밀도 추가(마우스로 누른 곳에만)
-        double fx= Input.GetAxis("Mouse X") * sensitivity*dt;
-        double fy= Input.GetAxis("Mouse Y") * sensitivity*dt;
         //마우스 화면 좌표를 격자 인덱스로 변환
         Vector3 mp = Input.mousePosition;
         int ci = (int)(mp.x / Screen.width * N);
@@ -121,6 +123,16 @@ public class LiquidManager : MonoBehaviour
         LinSolve(dens, dens_prev,a,c, 20, 0);
         Copy(dens_prev, dens);
         Advect(0,dt,dens,dens_prev, curLiquidState.u, curLiquidState.v);
+        Damping();
+    }
+
+    /// <summary>
+    /// 입력
+    /// </summary>
+    void InputMouse()
+    {
+        fx = Input.GetAxis("Mouse X") * sensitivity * dt;
+        fy = Input.GetAxis("Mouse Y") * sensitivity * dt;
     }
 
     /// <summary>
@@ -303,6 +315,16 @@ public class LiquidManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 감쇠
+    /// </summary>
+    void Damping()
+    {
+        for (int i = 0; i <= N; i++)
+            for (int j = 0; j <= N; j++)
+                dens[i, j] *= 0.99;
+    }
+
+    /// <summary>
     /// 밀도를 흑백으로 표현
     /// </summary>
     void Render()
@@ -311,7 +333,12 @@ public class LiquidManager : MonoBehaviour
             for (int j = 0; j <= N; j++)
             {
                 float d = (float)Mathf.Clamp01((float)dens[i, j]);
-                tex.SetPixel(i, j, new Color(d, d, d));
+                Color col = new Color(
+    d * 0.4f,          // R: 적게
+    d * 0.7f,          // G: 중간
+    0.3f + d * 0.7f    // B: 기본으로 깔고 밀도만큼 밝게
+);
+                tex.SetPixel(i, j, col);
             }
         tex.Apply();
     }
