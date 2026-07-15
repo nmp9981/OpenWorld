@@ -1,6 +1,4 @@
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.AI;
 
 /// <summary>
 /// 유체 상태
@@ -13,51 +11,85 @@ public struct LiquidState2D
     public double[,] div;  //발산(투영 단계 임시 버퍼)
     public double[,] u_prev, v_prev;// 이전 스텝 값(확산·이류의 소스)
 }
-/// <summary>
-/// 유체 도함수
-/// </summary>
-public struct LiquidDerived2D
-{
-    public double[,] du;   // u의 시간도함수 = v
-    public double[,] dv;   // v의 시간도함수 = c²·(공간 2차미분) 
-    public double[,] dp;   // 압력 도함수
-}
-
 
 public class LiquidManager : MonoBehaviour
 {
     int N;          // 격자 구간 수 (점은 N+1개: 0 ~ N)
     double L;       // 줄 길이
     double h;      // 격자 간격 = L / N
-    double dx;      // 격자 간격 = L / N
-    double dy;
-    double c;       // 파동 속도
-    double nu = 1;  // 동점성계수
+    double nu = 0.0001;  // 동점성계수
+    double sensitivity = 500;//감도
 
-    double sensitivity = 500;
+    LiquidState2D curLiquidState;//물 상태
 
-    private Vector3D curForce;
-    private Vector3D outForce;
+    //밀도장
+    double[,] dens, dens_prev;
+    double diff = 0.0001;              // 밀도 확산율 (파라미터)
+    double a;    // 확산계수
+    double c;              // 분모
+    //텍스처
+    Texture2D tex;
 
-    LiquidState2D curLiquidState;
- 
+    private void Awake()
+    {
+        LiquidInit();
+    }
+
+    private void Update()
+    {
+        Render();
+    }
+
     // Update is called once per frame
     void FixedUpdate()
     {
-        LiquidStep();
+        double dt = Time.fixedDeltaTime;
+        LiquidStep(dt);
+        DensityStep(dt);
+    }
+
+    /// <summary>
+    /// 액체 초기화
+    /// </summary>
+    void LiquidInit()
+    {
+        N = 64;                 // 격자 크기
+        L = 1.0;
+        h = L / N;
+
+        //액체 상태
+        curLiquidState.u = new double[N + 1, N + 1];
+        curLiquidState.v = new double[N + 1, N + 1];
+        curLiquidState.p = new double[N + 1, N + 1];
+        curLiquidState.div = new double[N + 1, N + 1];
+        curLiquidState.u_prev = new double[N + 1, N + 1];
+        curLiquidState.v_prev = new double[N + 1, N + 1];
+
+        //밀도장
+        dens = new double[N + 1, N + 1];
+        dens_prev = new double[N + 1, N + 1];
+
+        //텍스터 생성
+        tex = new Texture2D(N + 1, N + 1);
+        tex.filterMode = FilterMode.Point;
     }
 
     /// <summary>
     /// 스텝
     /// </summary>
-    void LiquidStep()
+    void LiquidStep(double dt)
     {
-        double dt = Time.fixedDeltaTime;
-
-        //외력
+        //외력, 밀도 추가(마우스로 누른 곳에만)
         double fx= Input.GetAxis("Mouse X") * sensitivity*dt;
         double fy= Input.GetAxis("Mouse Y") * sensitivity*dt;
-        AddExternalForce(fx,fy);
+        //마우스 화면 좌표를 격자 인덱스로 변환
+        Vector3 mp = Input.mousePosition;
+        int ci = (int)(mp.x / Screen.width * N);
+        int cj = (int)((Screen.height-mp.y) / Screen.height * N);
+        if (Input.GetMouseButton(0)){
+            AddDensity(ci, cj, 3);
+            AddExternalForce(ci, cj, fx, fy);
+        }
 
         // 확산: 소스 준비
         Copy(curLiquidState.u_prev, curLiquidState.u);
@@ -79,18 +111,36 @@ public class LiquidManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 밀도 스텝
+    /// </summary>
+    void DensityStep(double dt)
+    {
+        Copy(dens_prev, dens);
+        a = diff * dt / (h * h);
+        c = 1 + 4 * a;
+        LinSolve(dens, dens_prev,a,c, 20, 0);
+        Copy(dens_prev, dens);
+        Advect(0,dt,dens,dens_prev, curLiquidState.u, curLiquidState.v);
+    }
+
+    /// <summary>
     /// 외력 추가
     /// </summary>
-    void AddExternalForce(double fx, double fy)
+    void AddExternalForce(int ci, int cj,double fx, double fy)
     {
-        for (int i = 0; i <= N; i++)
-        {
-            for (int j = 0; j <= N; j++)
-            {
-                curLiquidState.u[i, j] += fx;
-                curLiquidState.u[i, j] += fy;
-            }
-        }
+        // 커서가 있는 셀 (ci, cj) 주변에만 주입
+        if (ci < 1 || ci >= N || cj < 1 || cj >= N) return;
+        curLiquidState.u[ci, cj] += fx;
+        curLiquidState.v[ci, cj] += fy;
+    }
+    /// <summary>
+    /// 밀도 추가
+    /// </summary>
+    void AddDensity(int ci, int cj, double amount)
+    {
+        // 커서가 있는 셀 (ci, cj) 주변에만 주입
+        if (ci < 1 || ci >= N || cj < 1 || cj >= N) return;
+        dens[ci, cj] += amount;
     }
 
     /// <summary>
@@ -222,102 +272,6 @@ public class LiquidManager : MonoBehaviour
     }
 
     /// <summary>
-    /// RK4 적분
-    /// </summary>
-    /// <param name="y"></param>
-    /// <param name="dt"></param>
-    public WaveState2D RK4_Wave2D(WaveState2D y, double dt)
-    {
-        WaveDerived2D k1 = Cal_WaveState(y);
-        WaveDerived2D k2 = Cal_WaveState(AddScaled(y, k1, dt * 0.5));
-        WaveDerived2D k3 = Cal_WaveState(AddScaled(y, k2, dt * 0.5));
-        WaveDerived2D k4 = Cal_WaveState(AddScaled(y, k3, dt));
-
-        //배열이니 할당을 해야함
-        WaveState2D yNext = new WaveState2D();
-        yNext.u = new double[N + 1, N + 1];
-        yNext.v = new double[N + 1, N + 1];
-
-        for (int i = 0; i <= N; i++)
-        {
-            for (int j = 0; j <= N; j++)
-            {
-                yNext.u[i, j] = y.u[i, j] + (dt / 6) * (k1.du[i, j] + 2 * k2.du[i, j] + 2 * k3.du[i, j] + k4.du[i, j]);
-                yNext.v[i, j] = y.v[i, j] + (dt / 6) * (k1.dv[i, j] + 2 * k2.dv[i, j] + 2 * k3.dv[i, j] + k4.dv[i, j]);
-            }
-        }
-        return yNext;
-    }
-
-    /// <summary>
-    /// RK4 계산 함수 F
-    /// </summary>
-    /// <param name="y"></param>
-    /// <returns></returns>
-    public WaveDerived2D Cal_WaveState(WaveState2D y)
-    {
-        return Cal_Pos_Velocity(y);
-    }
-
-    /// <summary>
-    /// 헬퍼 함수
-    /// 상태 + 도함수 * h → 새 상태
-    /// </summary>
-    /// <param name="y"></param>
-    /// <param name="k"></param>
-    /// <param name="h"></param>
-    /// <returns></returns>
-    WaveState2D AddScaled(WaveState2D y, WaveDerived2D k, double dt)
-    {
-        //배열을 새로 만들어서 할당
-        //구조체는 문제없지만 그 안이 배열이 참조타입이다.
-        WaveState2D result = new WaveState2D();
-        result.u = new double[N + 1, N + 1];
-        result.v = new double[N + 1, N + 1];
-        for (int i = 0; i <= N; i++)
-        {
-            for (int j = 0; j <= N; j++)
-            {
-                result.u[i, j] = y.u[i, j] + dt * k.du[i, j];
-                result.v[i, j] = y.v[i, j] + dt * k.dv[i, j];
-            }
-        }
-        return result;
-    }
-
-    /// <summary>
-    /// 속도, 위치 계산
-    /// </summary>
-    /// <param name="y"></param>
-    /// <returns></returns>
-    WaveDerived2D Cal_Pos_Velocity(WaveState2D y)
-    {
-        WaveDerived2D result = new WaveDerived2D();
-        result.du = new double[N + 1, N + 1];
-        result.dv = new double[N + 1, N + 1];
-        for (int i = 1; i < N; i++)
-        {
-            for (int j = 1; j < N; j++)
-            {
-                double h = dx * dx;
-                double ch = (c * c) / h;
-
-                result.du[i, j] = y.v[i, j];
-                result.dv[i, j] = ch * (y.u[i + 1, j] - 4 * y.u[i, j] + y.u[i - 1, j] + y.u[i, j + 1] + y.u[i, j - 1]);
-            }
-        }
-        //끝변
-        for (int i = 0; i <= N; i++)
-        {
-            result.du[0, i] = 0; result.dv[0, i] = 0;
-            result.du[N, i] = 0; result.dv[N, i] = 0;
-            result.du[i, 0] = 0; result.dv[i, 0] = 0;
-            result.du[i, N] = 0; result.dv[i, N] = 0;
-        }
-        return result;
-    }
-
-    /// <summary>
     /// 선형 솔버
     /// </summary>
     void LinSolve(double[,] x, double[,] x0, double a, double c, int iter, int flag)
@@ -346,5 +300,23 @@ public class LiquidManager : MonoBehaviour
         for (int i = 0; i <= N; i++)
             for (int j = 0; j <= N; j++)
                 dst[i, j] = src[i, j];
+    }
+
+    /// <summary>
+    /// 밀도를 흑백으로 표현
+    /// </summary>
+    void Render()
+    {
+        for (int i = 0; i <= N; i++)
+            for (int j = 0; j <= N; j++)
+            {
+                float d = (float)Mathf.Clamp01((float)dens[i, j]);
+                tex.SetPixel(i, j, new Color(d, d, d));
+            }
+        tex.Apply();
+    }
+    void OnGUI()
+    {
+        GUI.DrawTexture(new Rect(0, 0, 512, 512), tex);
     }
 }
