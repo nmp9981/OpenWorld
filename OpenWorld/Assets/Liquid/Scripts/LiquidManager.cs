@@ -86,8 +86,10 @@ public class LiquidManager : MonoBehaviour
     {
         //마우스 화면 좌표를 격자 인덱스로 변환
         Vector3 mp = Input.mousePosition;
-        int ci = (int)(mp.x / Screen.width * N);
-        int cj = (int)((Screen.height-mp.y) / Screen.height * N);
+        int size = Mathf.Min(Screen.width, Screen.height);
+        int offsetX = (Screen.width - size) / 2;
+        int ci = (int)((mp.x - offsetX) / size * N);
+        int cj = (int)((Screen.height - mp.y) / size * N);   // 렌더 상하반전과 맞춤
         if (Input.GetMouseButton(0)){
             AddDensity(ci, cj, 3);
             AddExternalForce(ci, cj, fx, fy);
@@ -321,9 +323,9 @@ public class LiquidManager : MonoBehaviour
     {
         for (int i = 0; i <= N; i++)
             for (int j = 0; j <= N; j++)
-                dens[i, j] *= 0.99;
+                dens[i, j] *= 0.995;
     }
-
+    #region 시각화
     /// <summary>
     /// 밀도를 흑백으로 표현
     /// </summary>
@@ -344,6 +346,9 @@ public class LiquidManager : MonoBehaviour
     }
     void OnGUI()
     {
-        GUI.DrawTexture(new Rect(0, 0, 512, 512), tex);
+        int size = Mathf.Min(Screen.width, Screen.height);  // 화면 높이(1080)에 맞춤
+        int x = (Screen.width - size) / 2;                  // 가로 중앙 정렬
+        GUI.DrawTexture(new Rect(x, 0, size, size), tex);
     }
+    #endregion
 }
