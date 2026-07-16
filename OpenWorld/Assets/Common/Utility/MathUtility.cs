@@ -4,6 +4,46 @@ using UnityEngine;
 public static class MathUtility
 {
     /// <summary>
+    /// 더 작은 값
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
+    public static double Min(double x, double y)
+    {
+        return (x>y) ? y : x;
+    }
+    /// <summary>
+    /// 더 큰 값
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <returns></returns>
+    public static double Max(double x, double y)
+    {
+        return (x > y) ? x : y;
+    }
+    /// <summary>
+    /// Clamp, 사이에 있는 값으로 보정
+    /// </summary>
+    /// <param name="value"></param>
+    /// <param name="min"></param>
+    /// <param name="max"></param>
+    /// <returns></returns>
+    public static double ClampValue(double value, double min, double max)
+    {
+        if (value < min)
+        {
+            return min;
+        }
+        else if (value > max)
+        {
+            return max;
+        }
+        return value;
+    }
+
+    /// <summary>
     /// 절댓값 구하기
     /// </summary>
     /// <param name="x"></param>

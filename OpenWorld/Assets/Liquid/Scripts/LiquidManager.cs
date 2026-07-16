@@ -334,7 +334,7 @@ public class LiquidManager : MonoBehaviour
         for (int i = 0; i <= N; i++)
             for (int j = 0; j <= N; j++)
             {
-                float d = (float)Mathf.Clamp01((float)dens[i, j]);
+                float d = (float)MathUtility.ClampValue(dens[i, j],0,1);
                 Color col = new Color(
     d * 0.4f,          // R: 적게
     d * 0.7f,          // G: 중간
@@ -346,7 +346,7 @@ public class LiquidManager : MonoBehaviour
     }
     void OnGUI()
     {
-        int size = Mathf.Min(Screen.width, Screen.height);  // 화면 높이(1080)에 맞춤
+        int size = (int) MathUtility.Min((double)Screen.width, (double)Screen.height);  // 화면 높이(1080)에 맞춤
         int x = (Screen.width - size) / 2;                  // 가로 중앙 정렬
         GUI.DrawTexture(new Rect(x, 0, size, size), tex);
     }
