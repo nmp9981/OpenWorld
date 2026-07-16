@@ -256,6 +256,16 @@ public class LiquidManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 감쇠
+    /// </summary>
+    void Damping()
+    {
+        for (int i = 0; i <= N; i++)
+            for (int j = 0; j <= N; j++)
+                dens[i, j] *= 0.995;
+    }
+
+    /// <summary>
     /// 경계 조건 이산화
     /// </summary>
     void DecreteBoundaryCondition(double[,] x, int b)
@@ -284,7 +294,7 @@ public class LiquidManager : MonoBehaviour
         x[N, 0] = 0.5 * (x[N-1, 0] + x[N, 1]);
         x[N, N] = 0.5 * (x[N-1, N] + x[N, N-1]);
     }
-
+    #region 솔버
     /// <summary>
     /// 선형 솔버
     /// </summary>
@@ -315,16 +325,8 @@ public class LiquidManager : MonoBehaviour
             for (int j = 0; j <= N; j++)
                 dst[i, j] = src[i, j];
     }
+    #endregion
 
-    /// <summary>
-    /// 감쇠
-    /// </summary>
-    void Damping()
-    {
-        for (int i = 0; i <= N; i++)
-            for (int j = 0; j <= N; j++)
-                dens[i, j] *= 0.995;
-    }
     #region 시각화
     /// <summary>
     /// 밀도를 흑백으로 표현
