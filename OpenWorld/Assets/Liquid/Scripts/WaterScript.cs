@@ -27,7 +27,7 @@ public class WaterScript : MonoBehaviour
     double L;       // 줄 길이
     double dx;      // 격자 간격 = L / N
     double sensitivity = 500;//감도
-    double gravity = 9.81;//중력 가속도
+    double gravity = 1;//중력 가속도
 
     WaterState curWaterState;//물 상태
     WaterDerivedState waterDerivedState;
@@ -67,7 +67,7 @@ public class WaterScript : MonoBehaviour
     {
         N = 64;                 // 격자 크기
         L = 1.0;
-        dx = L / N;
+        dx = 1;
 
         //액체 상태
         curWaterState.u = new double[N + 1, N + 1];
@@ -119,7 +119,7 @@ public class WaterScript : MonoBehaviour
         {
             AddDensity(ci, cj, 3);
             //AddExternalForce(ci, cj, fx, fy);
-            AddHeight(ci, cj, 0.02);
+            AddHeight(ci, cj, 0.5);
         }
 
         //높이, 속도 최대 최소, 기본 수심
@@ -160,6 +160,8 @@ public class WaterScript : MonoBehaviour
         //이류 : 소스 준비
         Copy(curWaterState.u_prev, curWaterState.u);
         Copy(curWaterState.v_prev, curWaterState.v);
+        //DecreteBoundaryCondition(curWaterState.u, 1);
+        //DecreteBoundaryCondition(curWaterState.v, 2);
         //x,y방향 각각
         Advect(1, dt, curWaterState.u, curWaterState.u_prev, curWaterState.u_prev, curWaterState.v_prev);
         Advect(2, dt, curWaterState.v, curWaterState.v_prev, curWaterState.u_prev, curWaterState.v_prev);
@@ -239,15 +241,23 @@ public class WaterScript : MonoBehaviour
         {
             for (int j = 1; j < N; j++)
             {
-                //중심 차분
-                double diffFluxX = curWaterState.x_flux[i + 1, j] - curWaterState.x_flux[i - 1, j];
-                double diffFluxY = curWaterState.y_flux[i, j + 1] - curWaterState.y_flux[i, j - 1];
-                waterDerivedState.dh[i, j] = (-diffFluxX - diffFluxY) / (2 * dx);
+                //전방 차분
+                double diffFluxX = curWaterState.x_flux[i + 1, j] - curWaterState.x_flux[i, j];
+                double diffFluxY = curWaterState.y_flux[i, j + 1] - curWaterState.y_flux[i, j];
+                waterDerivedState.dh[i, j] = (-diffFluxX - diffFluxY) / dx;
 
                 //갱신
                 curWaterState.h[i, j] = curWaterState.h_prev[i, j] + dt * waterDerivedState.dh[i, j];
             }
         }
+        //평활화
+        for (int i = 1; i < N; i++)
+            for (int j = 1; j < N; j++)
+            {
+                double avg = 0.25 * (curWaterState.h[i + 1, j] + curWaterState.h[i - 1, j]
+                                  + curWaterState.h[i, j + 1] + curWaterState.h[i, j - 1]);
+                curWaterState.h[i, j] = 0.97 * curWaterState.h[i, j] + 0.03 * avg;
+            }
     }
     /// <summary>
     /// 압력 이산화
@@ -259,11 +269,11 @@ public class WaterScript : MonoBehaviour
         {
             for (int j = 1; j < N; j++)
             {
-                //중심 차분
-                double diffFluxX = curWaterState.h_prev[i + 1, j] - curWaterState.h_prev[i - 1, j];
-                double diffFluxY = curWaterState.h_prev[i, j + 1] - curWaterState.h_prev[i, j - 1];
-                curWaterState.u[i, j] = curWaterState.u[i, j] - dt*gravity*diffFluxX/(2*dx);
-                curWaterState.v[i, j] = curWaterState.v[i, j] - dt * gravity * diffFluxY / (2 * dx);
+                //후방 차분
+                double diffFluxX = curWaterState.h_prev[i, j] - curWaterState.h_prev[i - 1, j];
+                double diffFluxY = curWaterState.h_prev[i, j] - curWaterState.h_prev[i, j - 1];
+                curWaterState.u[i, j] = curWaterState.u[i, j] - dt*gravity*diffFluxX/dx;
+                curWaterState.v[i, j] = curWaterState.v[i, j] - dt * gravity * diffFluxY / dx;
             }
         }
     }
