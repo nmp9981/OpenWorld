@@ -54,6 +54,29 @@ public static class MathUtility
     }
 
     /// <summary>
+    /// 반올림, 소수 첫번째 자리에서 반올림
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static int RountToInt(double x)
+    {
+        double decimalValue = x-(int)x;//소수 값
+        int intValue = (int)x;//정수 값
+
+        //딱 떨어짐
+        if (decimalValue == 0) return intValue;
+
+        //올림
+        if (decimalValue >= 0.5)
+            return intValue+1;
+        else if(decimalValue<=-0.5)
+            return intValue-1;
+
+        //버림
+        return intValue;
+    }
+
+    /// <summary>
     /// 제곱근
     /// </summary>
     /// <param name="x"></param>
