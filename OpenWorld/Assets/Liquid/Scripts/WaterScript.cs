@@ -1,6 +1,4 @@
-﻿using System.Drawing;
-using System.Security.Cryptography;
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// 유체 상태
@@ -49,6 +47,7 @@ public class WaterScript : MonoBehaviour
     Mesh mesh;
     Vector3[] vertices;
     double heightScale = 1.0;   // 물결 과장 배율
+    Color[] colors;
 
     private void Awake()
     {
@@ -443,6 +442,7 @@ public class WaterScript : MonoBehaviour
 
         int size = N + 1;
         vertices = new Vector3[size*size];
+        colors = new Color[size * size];
         int[] triangles = new int[N*N*6];
 
         //점점 xz위치
@@ -478,9 +478,17 @@ public class WaterScript : MonoBehaviour
         int size = N + 1;
         for (int i = 0; i <= N; i++)
             for (int j = 0; j <= N; j++)
-                vertices[i * size + j].y = (float)((curWaterState.h[i, j] - 1.0) * heightScale);
+            {
+                int idx = i * size + j;
+                vertices[idx].y = (float)((curWaterState.h[i, j] - 1.0) * heightScale);
+
+                //높이를 0~1로 정규화해 색에 저장 (R채널 사용)
+                float hn = (float)MathUtility.ClampValue((curWaterState.h[i, j] - 1.0) * 3,0,1);
+                colors[idx] = new Color(hn,0,0,1);
+            }
 
         mesh.vertices = vertices;
+        mesh.colors = colors;
         mesh.RecalculateNormals();   // 음영 갱신 — 없으면 밋밋함
     }
 
