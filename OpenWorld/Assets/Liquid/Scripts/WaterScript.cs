@@ -48,13 +48,13 @@ public class WaterScript : MonoBehaviour
     //Mesh
     Mesh mesh;
     Vector3[] vertices;
-    double heightScale = 50.0;   // 물결 과장 배율
+    double heightScale = 1.0;   // 물결 과장 배율
 
     private void Awake()
     {
         LiquidInit();
         CreateMesh();
-        curWaterState.h[N / 2, N / 2] += 3;
+        curWaterState.h[N / 2, N / 2] += 0.5;
     }
 
     private void Update()
@@ -227,8 +227,21 @@ public class WaterScript : MonoBehaviour
     /// <param name="amount"></param>
     void AddHeight(int ci, int cj, double amount)
     {
+        //경계 처리
         if (ci < 1 || ci >= N || cj < 1 || cj >= N) return;
-        curWaterState.h[ci, cj] += amount;
+
+        //주변셀에 가중치
+        for (int di = -1; di <= 1; di++)
+            for (int dj = -1; dj <= 1; dj++)
+            {
+                int ni = ci + di;
+                int nj = cj + dj;
+                //경계 조건
+                if (ni < 0 || ni > N || nj < 0 || nj > N) return;
+                //가중치
+                double w = (di == 0 && dj == 0) ? 1 : 0.5;
+                curWaterState.h[ci, cj] += (amount*w);
+            }
     }
 
     /// <summary>
