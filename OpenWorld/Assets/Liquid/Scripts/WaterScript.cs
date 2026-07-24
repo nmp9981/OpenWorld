@@ -8,9 +8,7 @@ public struct WaterState
     public double[,] u;   // (i,j) 셀에서 유체가 x방향으로 흐르는 속도
     public double[,] v;   // (i,j) 셀에서 유체가 y방향으로 흐르는 속도
     public double[,] h;   // (i,j) 셀에서의 높이
-    public double[,] p;   // 압력
     public double[,] x_flux, y_flux;   // 유량
-    public double[,] div;  //발산(투영 단계 임시 버퍼)
     public double[,] h_prev;   // 이전 스텝값
     public double[,] u_prev, v_prev;// 이전 스텝 값(확산·이류의 소스)
 }
@@ -30,7 +28,7 @@ public class WaterScript : MonoBehaviour
     WaterState curWaterState;//물 상태
     WaterDerivedState waterDerivedState;
 
-    double fx, fy, dt;
+    double dt;
 
     //텍스처
     Texture2D tex;
@@ -73,8 +71,6 @@ public class WaterScript : MonoBehaviour
         curWaterState.u = new double[N + 1, N + 1];
         curWaterState.v = new double[N + 1, N + 1];
         curWaterState.h = new double[N + 1, N + 1];
-        curWaterState.p = new double[N + 1, N + 1];
-        curWaterState.div = new double[N + 1, N + 1];
         curWaterState.h_prev = new double[N + 1, N + 1];
         curWaterState.x_flux = new double[N + 1, N + 1];
         curWaterState.y_flux = new double[N + 1, N + 1];

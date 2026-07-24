@@ -78,9 +78,9 @@ public struct Vector3D
     public static Vector3D Cross(Vector3D a, Vector3D b)
     {
         double xi = a.y * b.z - a.z * b.y;
-        double yj = a.x * b.z - a.z * b.x;
+        double yj = -(a.x * b.z - a.z * b.x);
         double zk = a.x * b.y - a.y * b.x;
 
-        return new Vector3D(xi, -yj, zk);
+        return new Vector3D(xi, yj, zk);
     }
 }

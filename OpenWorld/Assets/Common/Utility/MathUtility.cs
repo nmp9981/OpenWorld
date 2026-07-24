@@ -148,7 +148,11 @@ public static class MathUtility
     public static double Ceil(double x)
     {
         long intX = (long)x;
-        if (x < 0 && intX != x)//음수 보정
+        //원래부터 정수
+        if (intX == x) return x;
+
+        //음수 보정
+        if (x < 0 && intX != x)
         {
             return (double)intX;
         }
@@ -164,6 +168,7 @@ public static class MathUtility
     /// <returns></returns>
     public static double Pow(double a, int n)
     {
+        if (n == 0) return 1;
         if (n == 1) return a;
 
         if (n % 2 == 0) return Pow(a, n / 2) * Pow(a, n / 2);
