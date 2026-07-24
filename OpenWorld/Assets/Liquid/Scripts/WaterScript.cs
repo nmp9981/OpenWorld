@@ -24,21 +24,13 @@ public struct WaterDerivedState
 public class WaterScript : MonoBehaviour
 {
     int N;          // 격자 구간 수 (점은 N+1개: 0 ~ N)
-    double L;       // 줄 길이
     double dx;      // 격자 간격 = L / N
-    double sensitivity = 500;//감도
     double gravity = 1;//중력 가속도
 
     WaterState curWaterState;//물 상태
     WaterDerivedState waterDerivedState;
 
     double fx, fy, dt;
-
-    //밀도장
-    double[,] dens, dens_prev;
-    double diff = 0.0001;              // 밀도 확산율 (파라미터)
-    double a;    // 확산계수
-    double c;              // 분모
 
     //텍스처
     Texture2D tex;
@@ -62,12 +54,11 @@ public class WaterScript : MonoBehaviour
         InputMouses();
         RenderMesh();
     }
-
+  
     // Update is called once per frame
     void FixedUpdate()
     {
         LiquidStep(dt);
-        DensityStep(dt);
     }
 
     /// <summary>
@@ -76,7 +67,6 @@ public class WaterScript : MonoBehaviour
     void LiquidInit()
     {
         N = 64;                 // 격자 크기
-        L = 1.0;
         dx = 1;
 
         //액체 상태
@@ -91,10 +81,6 @@ public class WaterScript : MonoBehaviour
         curWaterState.u_prev = new double[N + 1, N + 1];
         curWaterState.v_prev = new double[N + 1, N + 1];
         waterDerivedState.dh = new double[N + 1, N + 1];
-
-        //밀도장
-        dens = new double[N + 1, N + 1];
-        dens_prev = new double[N + 1, N + 1];
 
         //텍스터 생성
         tex = new Texture2D(N + 1, N + 1);
@@ -119,19 +105,6 @@ public class WaterScript : MonoBehaviour
     /// </summary>
     void LiquidStep(double dt)
     {
-        //Vector3 mp = Input.mousePosition;
-        //int size = Mathf.Min(Screen.width, Screen.height);
-        //int offsetX = (Screen.width - size) / 2;
-        //int ci = (int)((mp.x - offsetX) / size * N);
-        //int cj = (int)((Screen.height - mp.y) / size * N);   // 렌더 상하반전과 맞춤
-        
-        //if (Input.GetMouseButton(0))
-        //{
-        //    AddDensity(ci, cj, 3);
-        //    //AddExternalForce(ci, cj, fx, fy);
-        //    AddHeight(ci, cj, 0.5);
-        //}
-
         //높이, 속도 최대 최소, 기본 수심
         double hMax = 0;
         double uMax = 0;
@@ -170,55 +143,13 @@ public class WaterScript : MonoBehaviour
         //이류 : 소스 준비
         Copy(curWaterState.u_prev, curWaterState.u);
         Copy(curWaterState.v_prev, curWaterState.v);
-        //DecreteBoundaryCondition(curWaterState.u, 1);
-        //DecreteBoundaryCondition(curWaterState.v, 2);
+       
         //x,y방향 각각
         Advect(1, dt, curWaterState.u, curWaterState.u_prev, curWaterState.u_prev, curWaterState.v_prev);
         Advect(2, dt, curWaterState.v, curWaterState.v_prev, curWaterState.u_prev, curWaterState.v_prev);
     }
 
-    /// <summary>
-    /// 밀도 스텝
-    /// </summary>
-    void DensityStep(double dt)
-    {
-        Copy(dens_prev, dens);
-        a = diff * dt / (dx * dx);
-        c = 1 + 4 * a;
-        LinSolve(dens, dens_prev, a, c, 20, 0);
-        Copy(dens_prev, dens);
-        Advect(0, dt, dens, dens_prev, curWaterState.u, curWaterState.v);
-        Damping();
-    }
-
-    /// <summary>
-    /// 입력
-    /// </summary>
-    void InputMouse()
-    {
-        fx = Input.GetAxis("Mouse X") * sensitivity * dt;
-        fy = Input.GetAxis("Mouse Y") * sensitivity * dt;
-    }
-
-    /// <summary>
-    /// 외력 추가
-    /// </summary>
-    void AddExternalForce(int ci, int cj, double fx, double fy)
-    {
-        // 커서가 있는 셀 (ci, cj) 주변에만 주입
-        if (ci < 1 || ci >= N || cj < 1 || cj >= N) return;
-        curWaterState.u[ci, cj] += fx;
-        curWaterState.v[ci, cj] += fy;
-    }
-    /// <summary>
-    /// 밀도 추가
-    /// </summary>
-    void AddDensity(int ci, int cj, double amount)
-    {
-        // 커서가 있는 셀 (ci, cj) 주변에만 주입
-        if (ci < 1 || ci >= N || cj < 1 || cj >= N) return;
-        dens[ci, cj] += amount;
-    }
+   
     /// <summary>
     /// 높이 추가
     /// </summary>
@@ -339,16 +270,6 @@ public class WaterScript : MonoBehaviour
     }
 
     /// <summary>
-    /// 감쇠
-    /// </summary>
-    void Damping()
-    {
-        for (int i = 0; i <= N; i++)
-            for (int j = 0; j <= N; j++)
-                dens[i, j] *= 0.995;
-    }
-
-    /// <summary>
     /// 경계 조건 이산화
     /// </summary>
     void DecreteBoundaryCondition(double[,] x, int b)
@@ -378,25 +299,6 @@ public class WaterScript : MonoBehaviour
         x[N, N] = 0.5 * (x[N - 1, N] + x[N, N - 1]);
     }
     #region 솔버
-    /// <summary>
-    /// 선형 솔버
-    /// </summary>
-    void LinSolve(double[,] x, double[,] x0, double a, double c, int iter, int flag)
-    {
-        for (int k = 0; k < iter; k++)
-        {
-            for (int i = 1; i < N; i++)
-            {
-                for (int j = 1; j < N; j++)
-                {
-                    double sumIJ = x[i + 1, j] + x[i - 1, j] + x[i, j + 1] + x[i, j - 1];
-                    x[i, j] = (x0[i, j] + a * sumIJ) / c;
-                }
-            }
-            //경계 조건 적용
-            DecreteBoundaryCondition(x, flag);
-        }
-    }
     /// <summary>
     /// 배열 복사
     /// </summary>
@@ -494,31 +396,5 @@ public class WaterScript : MonoBehaviour
         mesh.colors = colors;
         mesh.RecalculateNormals();   // 음영 갱신 — 없으면 밋밋함
     }
-
-    /// <summary>
-    /// 밀도를 흑백으로 표현
-    /// </summary>
-    void Render()
-    {
-        for (int i = 0; i <= N; i++)
-            for (int j = 0; j <= N; j++)
-            {
-                float d = (float)((curWaterState.h[i, j] - 1) * 5 + 0.5);
-                d = (float)MathUtility.ClampValue(d, 0, 1);
-                UnityEngine.Color col = new UnityEngine.Color(
-    d * 0.4f,          // R: 적게
-    d * 0.7f,          // G: 중간
-    0.3f + d * 0.7f    // B: 기본으로 깔고 밀도만큼 밝게
-);
-                tex.SetPixel(i, j, col);
-            }
-        tex.Apply();
-    }
-    //void OnGUI()
-    //{
-    //    int size = (int)MathUtility.Min((double)Screen.width, (double)Screen.height);  // 화면 높이(1080)에 맞춤
-    //    int x = (Screen.width - size) / 2;                  // 가로 중앙 정렬
-    //    GUI.DrawTexture(new Rect(x, 0, size, size), tex);
-    //}
     #endregion
 }
