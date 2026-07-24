@@ -168,10 +168,10 @@ public class WaterScript : MonoBehaviour
                 int ni = ci + di;
                 int nj = cj + dj;
                 //경계 조건
-                if (ni < 0 || ni > N || nj < 0 || nj > N) return;
+                if (ni < 0 || ni > N || nj < 0 || nj > N) continue;
                 //가중치
                 double w = (di == 0 && dj == 0) ? 1 : 0.5;
-                curWaterState.h[ci, cj] += (amount*w);
+                curWaterState.h[ni, nj] += (amount*w);
             }
     }
 
@@ -369,6 +369,11 @@ public class WaterScript : MonoBehaviour
                 triangles[t++] = bb; triangles[t++] = cc; triangles[t++] = dd;
             }
         }
+        //uv채우기
+        for (int i = 0; i <= N; i++)
+            for (int j = 0; j <= N; j++)
+                uvs[i * size + j] = new Vector2((float)i / N, (float)j / N);
+
         mesh.vertices = vertices;
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
