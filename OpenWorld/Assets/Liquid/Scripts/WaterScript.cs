@@ -45,6 +45,9 @@ public class WaterScript : MonoBehaviour
         LiquidInit();
         CreateMesh();
         curWaterState.h[N / 2, N / 2] += 0.5;
+
+        Debug.Log(MathUtility.Round(0.145, 2));  // 0.15 기대 → 실제 0.14 나옴
+        Debug.Log(MathUtility.Round(1.005, 2));  // 1.01 기대 → 실제 1.0 나옴
     }
 
     private void Update()
@@ -321,8 +324,8 @@ public class WaterScript : MonoBehaviour
                 Vector3 p = ray.GetPoint(dist);
                 //로컬->격자 인덱스
                 Vector3 local = transform.InverseTransformPoint(p);
-                int ci = MathUtility.RountToInt(local.x);
-                int cj = MathUtility.RountToInt(local.z);
+                int ci = (int)MathUtility.RountToInt(local.x);
+                int cj = (int)MathUtility.RountToInt(local.z);
                 AddHeight(ci, cj, 0.5);
             }
         }

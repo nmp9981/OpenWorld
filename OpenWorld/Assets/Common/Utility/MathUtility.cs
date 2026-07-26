@@ -53,15 +53,20 @@ public static class MathUtility
         return (x < 0) ? -x : x;
     }
 
+    #region 올림, 내림, 반올림
     /// <summary>
     /// 반올림, 소수 첫번째 자리에서 반올림
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
-    public static int RountToInt(double x)
+    public static long RountToInt(double x)
     {
-        double decimalValue = x-(int)x;//소수 값
-        int intValue = (int)x;//정수 값
+        // NaN, 무한대, long 범위를 벗어나는 매우 큰 수 처리
+        if (double.IsNaN(x) || double.IsInfinity(x) || x >= long.MaxValue || x <= long.MinValue)
+            return (long)x;
+
+        double decimalValue = x-(long)x;//소수 값
+        long intValue = (long)x;//정수 값
 
         //딱 떨어짐
         if (decimalValue == 0) return intValue;
@@ -75,6 +80,82 @@ public static class MathUtility
         //버림
         return intValue;
     }
+    /// <summary>
+    /// 반올림, 소수 N째자리까지 반올림
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Round(double x,int digit)
+    {
+        // NaN, 무한대는 그대로 반환
+        if (double.IsNaN(x) || double.IsInfinity(x))
+            return x;
+
+        double n10 = Pow(10, digit);
+        double x10n = x * n10;
+
+        // 스케일 후 long 범위를 벗어나면 안전하게 원본 반환
+        if (x10n >= long.MaxValue || x10n <= long.MinValue)
+            return x;
+
+        double decimalValue = x10n - (long)x10n;//소수 값
+        long intValue = (long)x10n;//정수 값
+
+        //딱 떨어짐
+        if (decimalValue == 0) return (double)intValue/n10;
+
+        //올림(숫자 변동)
+        if (decimalValue >= 0.5)
+            intValue += 1;
+        else if (decimalValue <= -0.5)
+            intValue -= 1;
+
+        return (double)intValue/n10;
+    }
+
+    /// <summary>
+    /// 내림 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static long FloorToInt(double x)
+    {
+        // NaN, 무한대, long 범위를 벗어나는 매우 큰 수 처리
+        if (double.IsNaN(x) || double.IsInfinity(x) || x >= long.MaxValue || x <= long.MinValue)
+            return (long)x;
+
+        long intX = (long)x;
+        if (x < 0 && intX != x)//음수 보정
+        {
+            intX -= 1;
+        }
+        return intX;
+    }
+
+    /// <summary>
+    /// 올림 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static long CeilToInt(double x)
+    {
+        // NaN, 무한대, long 범위를 벗어나는 매우 큰 수 처리
+        if (double.IsNaN(x) || double.IsInfinity(x) || x >= long.MaxValue || x <= long.MinValue)
+            return (long)x;
+
+        long intX = (long)x;
+        //원래부터 정수
+        if (intX == x) return intX;
+
+        //음수 보정
+        if (x < 0 && intX != x)
+        {
+            return intX;
+        }
+        return intX + 1;
+    }
+
+    #endregion
 
     /// <summary>
     /// 제곱근
@@ -123,40 +204,6 @@ public static class MathUtility
             res *= i;
         }
         return res;
-    }
-
-    /// <summary>
-    /// 내림 함수
-    /// </summary>
-    /// <param name="x"></param>
-    /// <returns></returns>
-    public static double Floor(double x)
-    {
-        long intX = (long)x;
-        if(x<0 && intX != x)//음수 보정
-        {
-            intX -= 1;
-        }
-        return (double) intX;
-    }
-
-    /// <summary>
-    /// 올림 함수
-    /// </summary>
-    /// <param name="x"></param>
-    /// <returns></returns>
-    public static double Ceil(double x)
-    {
-        long intX = (long)x;
-        //원래부터 정수
-        if (intX == x) return x;
-
-        //음수 보정
-        if (x < 0 && intX != x)
-        {
-            return (double)intX;
-        }
-        return (double)intX+1;
     }
 
     #region 지수/로그 함수 
@@ -230,7 +277,7 @@ public static class MathUtility
     public static double Sin(double x)
     {
         double twoPi = 2 * ConstUtility.PI;
-        x = x - twoPi * Floor((x + ConstUtility.PI) / twoPi);
+        x = x - twoPi * FloorToInt((x + ConstUtility.PI) / twoPi);
 
         double x2 = x * x;
         double x4 = x2 * x2;
@@ -253,7 +300,7 @@ public static class MathUtility
     public static double Cos(double x)
     {
         double twoPi = 2 * ConstUtility.PI;
-        x = x - twoPi * Floor((x + ConstUtility.PI) / twoPi);
+        x = x - twoPi * FloorToInt((x + ConstUtility.PI) / twoPi);
 
         double x2 = x * x;
         double x4 = x2 * x2;
