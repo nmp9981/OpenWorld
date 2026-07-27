@@ -220,7 +220,7 @@ public static class MathUtility
         if (x == 1) return a;
 
         //로그 예외
-        if (a < 0) return double.NaN;
+        if (a <= 0) return double.NaN;
 
         //x를 정수, 소수 분리
         double decimalValue = x - (long)x;//소수 값
@@ -235,18 +235,38 @@ public static class MathUtility
         double xlna = decimalValue * lna;
 
         //e^xlna, 테일러 급수 활용
-        double x2 = xlna * xlna;
-        double x3 = x2 * xlna;
-        double x4 = x2 * x2;
-        double x5 = x3 * x2;
-        double x7 = x4 * x3;
-        double x8 = x4 * x4;
-        double to04 = 1 + xlna + x2 / 2 + x3 / Fact(3) + x4 / Fact(4);
-        double to58 = x5 / Fact(5) + x3*x3 / Fact(6) + x7 / Fact(7)+x8/Fact(8);
-        double to912 = x5*x4 / Fact(9) + x8 * x2 / Fact(10) + x8*x3 / Fact(11) + x8*x4 / Fact(12);
-        double elnxa = to04+to58+to912;
-        return elnxa* axLong;
+        return Exp(xlna)* axLong;
     }
+
+    /// <summary>
+    /// e^x 계산
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Exp(double x)
+    {
+        //범위 축소
+        int k = 0;
+        while ((x<0?-x:x)>1)
+        {
+            x *= 0.5;
+            k++;
+        }
+
+        //테일러 급수, e^(t/2^k)
+        double term = 1;
+        double sum = 1;
+        for(int i = 1; i <= 12; i++)
+        {
+            term *= (x/i);
+            sum += term;
+        }
+
+        //다시 2^k만큼 곱함(정확히는 축소한 횟수만큼)
+        for (int i = 0; i < k; i++) sum *= sum;
+        return sum;
+    }
+
     /// <summary>
     /// 제곱근
     /// </summary>
