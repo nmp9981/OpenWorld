@@ -177,8 +177,11 @@ public static class MathUtility
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
-    public static double Fact(double x)
+    public static double Fact(long x)
     {
+        //음수 방어
+        if (x < 0) return double.NaN;
+
         //0!, 1!
         if (x < 2) return 1;
 
@@ -274,16 +277,32 @@ public static class MathUtility
     /// <returns></returns>
     public static double Sqrt(double x)
     {
-        if (x < 0) x = Abs(x);
+        if (x < 0) return double.NaN;//허수
         if (x == 0) return 0;
 
+        // 범위 축소: x = m · 4^k,  m ∈ [1, 4)  →  √x = √m · 2^k
+        int k = 0;
+        double m = x;
+        while (m >= 4) { m *= 0.25; k++; }
+        while (m < 1) { m *= 4; k--; }
+
+        int count = 0;
+        int maxIterations = 100;//무한루프 방지
         double rootX = x;
         double prev;
         do
         {
             prev = rootX;
             rootX = (rootX + (x / rootX)) * 0.5;
-        } while (Abs(rootX - prev) > ConstUtility.Epcilon12);
+
+            count++;
+            if (count > maxIterations) break;//최대 반복수
+
+        } while (Abs(rootX - prev) > ConstUtility.Epcilon12*Max(1,rootX));
+
+        //축소한만큼 다시 곱함
+        if (k >= 0) for (int i = 0; i < k; i++) rootX *= 2;
+        else for (int i = 0; i < -k; i++) rootX *= 0.5;
         return rootX;
     }
     /// <summary>
