@@ -45,9 +45,6 @@ public class WaterScript : MonoBehaviour
         LiquidInit();
         CreateMesh();
         curWaterState.h[N / 2, N / 2] += 0.5;
-
-        Debug.Log(MathUtility.Round(0.145, 2));  // 0.15 기대 → 실제 0.14 나옴
-        Debug.Log(MathUtility.Round(1.005, 2));  // 1.01 기대 → 실제 1.0 나옴
     }
 
     private void Update()

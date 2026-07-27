@@ -1,8 +1,10 @@
-﻿using Unity.Mathematics;
+﻿using System.IO.Hashing;
+using Unity.Mathematics;
 using UnityEngine;
 
 public static class MathUtility
 {
+    #region 기초 함수
     /// <summary>
     /// 더 작은 값
     /// </summary>
@@ -52,6 +54,8 @@ public static class MathUtility
     {
         return (x < 0) ? -x : x;
     }
+
+    #endregion
 
     #region 올림, 내림, 반올림
     /// <summary>
@@ -158,26 +162,6 @@ public static class MathUtility
     #endregion
 
     /// <summary>
-    /// 제곱근
-    /// </summary>
-    /// <param name="x"></param>
-    /// <returns></returns>
-    public static double Sqrt(double x)
-    {
-        if (x < 0) x = Abs(x);
-        if (x == 0) return 0;
-
-        double rootX = x;
-        double prev;
-        do
-        {
-            prev = rootX;
-            rootX = (rootX + (x / rootX)) * 0.5;
-        } while (Abs(rootX-prev)>ConstUtility.Epcilon12);
-        return rootX;
-    }
-
-    /// <summary>
     /// 2차 적분
     /// </summary>
     /// <param name="vec0"></param>
@@ -213,13 +197,74 @@ public static class MathUtility
     /// <param name="a"></param>
     /// <param name="n"></param>
     /// <returns></returns>
-    public static double Pow(double a, int n)
+    public static double Pow(double a, long n)
     {
+        if (n < 0) return 1 / Pow(a, -n);//음수 지수
         if (n == 0) return 1;
         if (n == 1) return a;
 
-        if (n % 2 == 0) return Pow(a, n / 2) * Pow(a, n / 2);
-        else return Pow(a, n / 2) * Pow(a, n / 2) * a;
+        double half = Pow(a, n / 2);
+        if (n % 2 == 0) return half*half;
+        else return half * half * a;
+    }
+    /// <summary>
+    /// 거듭지수 계산
+    /// 실수일때는 e^xlna로 계산
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Pow(double a, double x)
+    {
+        if (x == 0) return 1;
+        if (x == 1) return a;
+
+        //로그 예외
+        if (a < 0) return double.NaN;
+
+        //x를 정수, 소수 분리
+        double decimalValue = x - (long)x;//소수 값
+        long intValue = (long)x;//정수 값
+
+        //정수 결과
+        double axLong = Pow(a,intValue);
+
+        //소수 결과
+        //xlna
+        double lna = Log(a);
+        double xlna = decimalValue * lna;
+
+        //e^xlna, 테일러 급수 활용
+        double x2 = xlna * xlna;
+        double x3 = x2 * xlna;
+        double x4 = x2 * x2;
+        double x5 = x3 * x2;
+        double x7 = x4 * x3;
+        double x8 = x4 * x4;
+        double to04 = 1 + xlna + x2 / 2 + x3 / Fact(3) + x4 / Fact(4);
+        double to58 = x5 / Fact(5) + x3*x3 / Fact(6) + x7 / Fact(7)+x8/Fact(8);
+        double to912 = x5*x4 / Fact(9) + x8 * x2 / Fact(10) + x8*x3 / Fact(11) + x8*x4 / Fact(12);
+        double elnxa = to04+to58+to912;
+        return elnxa* axLong;
+    }
+    /// <summary>
+    /// 제곱근
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Sqrt(double x)
+    {
+        if (x < 0) x = Abs(x);
+        if (x == 0) return 0;
+
+        double rootX = x;
+        double prev;
+        do
+        {
+            prev = rootX;
+            rootX = (rootX + (x / rootX)) * 0.5;
+        } while (Abs(rootX - prev) > ConstUtility.Epcilon12);
+        return rootX;
     }
     /// <summary>
     /// 자연로그 계산
