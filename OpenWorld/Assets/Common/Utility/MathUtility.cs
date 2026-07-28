@@ -381,6 +381,32 @@ public static class MathUtility
 
     #region 삼각함수
     /// <summary>
+    /// 각도를 라디안으로
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double ToRadianAngle(double x)
+    {
+        //정의역 조절
+        x = x % 360;
+
+        return x * 180/ConstUtility.PI;
+    }
+
+    /// <summary>
+    /// 각도를 육십분법으로
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double ToDegreeAngle(double x)
+    {
+        //정의역 조절
+        x = x % (2 * ConstUtility.PI)- ConstUtility.PI;
+
+        return x * ConstUtility.PI / 180;
+    }
+
+    /// <summary>
     /// Sin 함수
     /// </summary>
     /// <param name="x"></param>
@@ -435,6 +461,62 @@ public static class MathUtility
     public static double Tan(double x)
     {
         return Sin(x) / Cos(x);
+    }
+    /// <summary>
+    /// 1/Sin 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Cosec(double x)
+    {
+        return 1 / Sin(x);
+    }
+    /// <summary>
+    /// 1/Cos 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Sec(double x)
+    {
+        return 1 / Cos(x);
+    }
+    /// <summary>
+    /// 1/Tan 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Cot(double x)
+    {
+        return 1/Tan(x);
+    }
+    /// <summary>
+    /// Sin^-1 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double ArkSin(double x)
+    {
+        //정의역 설정
+        if (x == 1) return 90;
+        if (x == -1) return -90;
+
+        if (Abs(x) > 1) return double.NaN;
+
+
+
+        return 1 / Tan(x);
+    }
+    /// <summary>
+    /// Cos^-1 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double ArkCos(double x)
+    {
+        //정의역 설정
+        if (Abs(x) > 1) return double.NaN;
+
+        return ConstUtility.PI/2-ArkSin(x);
     }
     #endregion
 
