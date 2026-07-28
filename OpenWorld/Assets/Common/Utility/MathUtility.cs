@@ -181,6 +181,8 @@ public static class MathUtility
     {
         //음수 방어
         if (x < 0) return double.NaN;
+        //지나치게 큰수
+        if(x>= long.MaxValue) return double.NaN;
 
         //0!, 1!
         if (x < 2) return 1;
@@ -348,6 +350,31 @@ public static class MathUtility
         double talorResult = res1to4 + res5to8 + res9to12 + res13to16;
 
         return talorResult + (arqumenbt+halfCorrection)*ConstUtility.ln2;
+    }
+
+    /// <summary>
+    /// 상용로그 계산
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Log10(double x)
+    {
+        if (x <= 0) return double.NaN;//범위 예외
+        if (x == 1) return 0;//1
+
+        return Log(x) / Log(10);
+    }
+    /// <summary>
+    /// 밑이 k인 로그 계산
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double LogK(double x, double k)
+    {
+        if (x <= 0) return double.NaN;//범위 예외
+        if (x == 1) return 0;//1
+
+        return Log(x) / Log(k);
     }
 
     #endregion
