@@ -172,6 +172,7 @@ public static class MathUtility
         return vec0 * dt;
     }
 
+    #region 경우의 수
     /// <summary>
     /// 팩토리얼
     /// </summary>
@@ -194,6 +195,41 @@ public static class MathUtility
         }
         return res;
     }
+    /// <summary>
+    /// 순열
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="r"></param>
+    /// <returns></returns>
+    public static double NPR(long n, long r)
+    {
+        //음수 방어
+        if (n < 0 || r<0) return double.NaN;
+        //지나치게 큰수
+        if (n >= long.MaxValue || r>=long.MaxValue) return double.NaN;
+        //정의 위배
+        if(n<r) return double.NaN;
+
+        return Fact(n) / Fact(n - r);
+    }
+    /// <summary>
+    /// 조합
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="r"></param>
+    /// <returns></returns>
+    public static double NCR(long n, long r)
+    {
+        //음수 방어
+        if (n < 0 || r <= 0) return double.NaN;
+        //지나치게 큰수
+        if (n >= long.MaxValue || r >= long.MaxValue) return double.NaN;
+        //정의 위배
+        if (n < r) return double.NaN;
+
+        return NPR(n,r) / Fact(r);
+    }
+    #endregion
 
     #region 지수/로그 함수 
     /// <summary>
