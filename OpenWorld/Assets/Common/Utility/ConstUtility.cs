@@ -21,4 +21,9 @@ public static class ConstUtility
     //로그 상수
     public const double ln2 = 0.69314718;
     public const double root2 = 1.4142135623730951;
+
+    //탄전트 상수
+    public const double TanPi12 = 0.2679491924311227;
+    //루트 상수
+    public const double InvSqrt3 = 0.57735027;
 }

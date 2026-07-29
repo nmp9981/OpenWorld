@@ -381,7 +381,7 @@ public static class MathUtility
 
     #region 삼각함수
     /// <summary>
-    /// 각도를 라디안으로
+    /// 도를 라디안으로
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
@@ -390,20 +390,20 @@ public static class MathUtility
         //정의역 조절
         x = x % 360;
 
-        return x * 180/ConstUtility.PI;
+        return x * ConstUtility.PI/180;
     }
 
     /// <summary>
-    /// 각도를 육십분법으로
+    /// 라디안을 육십분법으로
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
     public static double ToDegreeAngle(double x)
     {
         //정의역 조절
-        x = x % (2 * ConstUtility.PI)- ConstUtility.PI;
+        x = x % (2 * ConstUtility.PI);
 
-        return x * ConstUtility.PI / 180;
+        return x * 180/ConstUtility.PI;
     }
 
     /// <summary>
@@ -491,20 +491,21 @@ public static class MathUtility
     }
     /// <summary>
     /// Sin^-1 함수
+    /// 반환은 호도법으로 
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
     public static double ArkSin(double x)
     {
         //정의역 설정
-        if (x == 1) return 90;
-        if (x == -1) return -90;
+        if (x == 1) return ConstUtility.PI/2;
+        if (x == -1) return -ConstUtility.PI / 2;
 
         if (Abs(x) > 1) return double.NaN;
 
-
-
-        return 1 / Tan(x);
+        //ArkTan 경유
+        double newX = x / Sqrt(1-x*x);
+        return ArkTan(newX);
     }
     /// <summary>
     /// Cos^-1 함수
@@ -517,6 +518,103 @@ public static class MathUtility
         if (Abs(x) > 1) return double.NaN;
 
         return ConstUtility.PI/2-ArkSin(x);
+    }
+    /// <summary>
+    /// Tan^-1 함수
+    /// x=1 경계에서 2.5e-3 오차 있음
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double ArkTan(double x)
+    {
+        //부호 분리 -> x>=0에서 계산
+        double sign = 1;
+        if (x < 0)
+        {
+            sign = -1;
+            x = -x;
+        }
+
+        //범위 축소
+        bool invert = false;
+        if (x > 1)
+        {
+            x = 1 / x;
+            invert = true;
+        }
+
+        //2차 축소
+        bool shift = false;
+        if (x > ConstUtility.TanPi12)
+        {
+            x = (x - ConstUtility.InvSqrt3) / (1 + x * ConstUtility.InvSqrt3);
+            shift = true;
+        }
+
+        double arkTan = x;
+        double term = x;
+        for (long n = 1; n < 99; n++)
+        {
+            term *= (-1.0*x * x);
+            double add = term / (2 * n + 1);
+            arkTan += add;
+
+            //조기 종료
+            if (Abs(add) < ConstUtility.Epcilon12) break;
+        }
+
+        if (shift) arkTan += ConstUtility.PI / 6;
+        if (invert) arkTan = ConstUtility.PI / 2 - arkTan;
+        return sign*arkTan;
+    }
+    /// <summary>
+    /// Tan^-1 함수, 인자 2개
+    /// x축 양의 방향 기준 (x,y)의 각도, 범위 -π ~ π
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double ArkTan2(double y, double x)
+    {
+        //0나누기 방지
+        if (x == 0)
+        {
+            if(y>0) return ConstUtility.PI/2;
+            if (y < 0) return -ConstUtility.PI / 2;
+            return 0;//둘다 0
+        }
+
+        double arkTan = ArkTan(y / x);//1,4사분면
+
+        if (x > 0) return arkTan;//1,4
+        if (y >= 0) return arkTan + ConstUtility.PI;//2
+        return arkTan - ConstUtility.PI;//3
+    }
+    /// <summary>
+    /// 쌍곡선 함수 -Sinh
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Sinh(double x)
+    {
+        return (Exp(x) - Exp(-x)) / 2;
+    }
+    /// <summary>
+    /// 쌍곡선 함수 -Cosh
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Cosh(double x)
+    {
+        return (Exp(x) + Exp(-x)) / 2;
+    }
+    /// <summary>
+    /// 쌍곡선 함수 -Tanh
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Tanh(double x)
+    {
+        return Sinh(x) / Cosh(x);
     }
     #endregion
 
