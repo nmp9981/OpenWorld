@@ -326,17 +326,17 @@ public static class MathUtility
 
         int count = 0;
         int maxIterations = 100;//무한루프 방지
-        double rootX = x;
+        double rootX = m;
         double prev;
         do
         {
             prev = rootX;
-            rootX = (rootX + (x / rootX)) * 0.5;
+            rootX = (rootX + (m / rootX)) * 0.5;
 
             count++;
             if (count > maxIterations) break;//최대 반복수
 
-        } while (Abs(rootX - prev) > ConstUtility.Epcilon12*Max(1,rootX));
+        } while (Abs(rootX - prev) > ConstUtility.Epcilon12*rootX);
 
         //축소한만큼 다시 곱함
         if (k >= 0) for (int i = 0; i < k; i++) rootX *= 2;

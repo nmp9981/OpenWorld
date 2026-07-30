@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using UnityEngine;
 
 public class PlanetInfo : MonoBehaviour
@@ -68,7 +69,7 @@ public class PlanetInfo : MonoBehaviour
     {
         universialForce = PhysicsFormula.Force_UniversalGravitation(dist, centerPlanet.Mass, Mass);
         accel = PhysicsFormula.Accel_From_Force(universialForce, Mass);
-        double initVelocity = MathUtility.Sqrt(accel.Magnitude() * dist.Magnitude());
+        double initVelocity = MathUtility.Sqrt(accel.Magnitude() *dist.Magnitude());
         Vector3D initVelocityDir = Vector3D.Cross(orbitNormalDir,dist).Normalized();
         return initVelocityDir*initVelocity*eccentricity;
     }
