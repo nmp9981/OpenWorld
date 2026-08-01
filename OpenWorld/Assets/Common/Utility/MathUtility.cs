@@ -513,6 +513,7 @@ public static class MathUtility
     public static double LogK(double x, double k)
     {
         if (x <= 0) return double.NaN;//범위 예외
+        if(k==1) return double.NaN;//정의 위배
         if (x == 1) return 0;//1
 
         return Log(x) / Log(k);
