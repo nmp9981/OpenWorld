@@ -25,6 +25,20 @@ public static class MathUtility
     {
         return (x > y) ? x : y;
     }
+   
+    /// <summary>
+    /// 절댓값 구하기
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Abs(double x)
+    {
+        return (x < 0) ? -x : x;
+    }
+
+    #endregion
+
+    #region 보간
     /// <summary>
     /// Clamp, 사이에 있는 값으로 보정
     /// </summary>
@@ -44,17 +58,108 @@ public static class MathUtility
         }
         return value;
     }
-
     /// <summary>
-    /// 절댓값 구하기
+    /// 기본 선형 보간 함수
     /// </summary>
-    /// <param name="x"></param>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <param name="t"></param>
     /// <returns></returns>
-    public static double Abs(double x)
+    public static double Lerp(double a, double b, double t)
     {
-        return (x < 0) ? -x : x;
+        t = ClampValue(t, 0, 1);
+        return a + (b - a) * t;
     }
+    /// <summary>
+    /// 선형 외삽 포함: t 제한 없음. t>1 또는 t<0이면 구간 밖으로 연장.
+    /// </summary>
+    public static double LerpUnclamped(double a, double b, double t)
+    {
+        return a * (1 - t) + b * t;   // Clamp 없음
+    }
+    /// <summary>
+    /// 역보간: value가 a~b 구간에서 차지하는 비율 t를 반환. Lerp의 역함수.
+    /// </summary>
+    public static double InverseLerp(double a, double b, double value)
+    {
+        if (a == b) return 0;               // 0으로 나누기 방지
+        return ClampValue((value - a) / (b - a),0,1);
+    }
+    /// <summary>
+    /// 보간 벡터버전
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <param name="t"></param>
+    /// <returns></returns>
+    public static Vector3D Lerp(Vector3D a,Vector3D b, double t)
+    {
+        t = ClampValue(t,0,1);
+        return new Vector3D(
+            Lerp(a.x, b.x, t),
+            Lerp(a.y, b.y, t),
+            Lerp(a.z, b.z, t)
+        );
+    }
+    /// <summary>
+    /// 각도 보간
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <param name="t"></param>
+    /// <returns></returns>
+    public static double LerpAngle(double a, double b, double t)
+    {
+        double delta = (b - a)% 360;      // 차이를 0~360으로 감기
+        if (delta > 180) delta -= 360;          // 180 넘으면 반대 방향이 더 짧음
+        if (delta < -180) delta += 360;
+        return a + delta * ClampValue(t,0,1);
+    }
+    /// <summary>
+    /// 현재값을 목표값으로 임계 감쇠 스프링을 따라 부드럽게 이동시킨다.
+    /// currentVelocity는 ref로 상태를 유지한다(호출 간 속도 보존).
+    /// </summary>
+    /// <param name="current">현재값</param>
+    /// <param name="target">목표값</param>
+    /// <param name="currentVelocity">현재 속도(ref, 매 호출 갱신됨)</param>
+    /// <param name="smoothTime">목표 도달 대략 시간(작을수록 빠름)</param>
+    /// <param name="deltaTime">한 스텝 시간(보통 Time.fixedDeltaTime)</param>
+    /// <param name="maxSpeed">최대 속도 제한(선택)</param>
+    public static double SmoothDamp(
+        double current, double target, ref double currentVelocity,
+        double smoothTime, double deltaTime,
+        double maxSpeed = double.PositiveInfinity)
+    {
+        // smoothTime이 0이 되지 않게 최소값 보장
+        smoothTime = Max(0.0001, smoothTime);
+        double omega = 2.0 / smoothTime;              // 자연 진동수 ω = 2/T
 
+        double x = omega * deltaTime;
+        // e^(-x) 유리함수 근사 (실시간용). 정밀도 원하면 Exp(-x)로 교체 가능
+        double expApprox = 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x);
+
+        double change = current - target;             // 목표까지 거리 d₀
+        double originalTarget = target;
+
+        // 최대 속도 제한 (한 스텝 이동량 클램프)
+        double maxChange = maxSpeed * smoothTime;
+        change = ClampValue(change, -maxChange, maxChange);
+        target = current - change;
+
+        // 임계 감쇠 해석해
+        double temp = (currentVelocity + omega * change) * deltaTime;
+        currentVelocity = (currentVelocity - omega * temp) * expApprox;
+        double output = target + (change + temp) * expApprox;
+
+        // 오버슈트 방지: 목표를 지나쳤으면 목표에 고정
+        if ((originalTarget - current > 0.0) == (output > originalTarget))
+        {
+            output = originalTarget;
+            currentVelocity = (output - originalTarget) / deltaTime;
+        }
+
+        return output;
+    }
     #endregion
 
     #region 올림, 내림, 반올림
