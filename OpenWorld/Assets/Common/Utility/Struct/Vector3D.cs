@@ -54,6 +54,11 @@ public struct Vector3D
     //보간
     public static Vector3D Lerp(Vector3D a, Vector3D b, double t)=> a + (b - a) * t;
 
+    //발산 감지
+    public bool IsFinite()
+    => !double.IsNaN(x) && !double.IsNaN(y) && !double.IsNaN(z)
+    && !double.IsInfinity(x) && !double.IsInfinity(y) && !double.IsInfinity(z);
+
     /// <summary>
     /// 크기
     /// </summary>
@@ -118,7 +123,83 @@ public struct Vector3D
 
         return new Vector3D(xi, yj, zk);
     }
+    /// <summary>
+    /// 스칼라 삼중곱
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <param name="c"></param>
+    /// <returns></returns>
+    public static double ScalarTriple(Vector3D a, Vector3D b, Vector3D c)
+    {
+        return Dot(a, Cross(b, c));
+    }
+    /// <summary>
+    /// 벡터 삼중곱
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <param name="c"></param>
+    /// <returns></returns>
+    public static Vector3D VectorTriple(Vector3D a, Vector3D b, Vector3D c)
+    {
+        return b * Dot(a, c) - c * Dot(a,b);
+    }
+    /// <summary>
+    /// 직교 기저 생성
+    /// </summary>
+    /// <param name="n"></param>
+    /// <param name="u"></param>
+    /// <param name="v"></param>
+    public static void BuildOrthonormalBasis(Vector3D n, out Vector3D t1, out Vector3D t2)
+    {
+        Vector3D a = (MathUtility.Abs(n.x) < 0.57735) ? Right: (MathUtility.Abs(n.y) < 0.57735) ? Up : Forward;
+        t1 = Cross(n, a).Normalized();
+        t2 = Cross(n, t1);
+    }
     #region 물리용 연산
-
+    /// <summary>
+    /// 반사 벡터 구하기
+    /// </summary>
+    /// <param name="v"></param>
+    /// <param name="n"></param>
+    /// <returns></returns>
+    public static Vector3D Reflect(Vector3D v, Vector3D n)
+    {
+        return v - n *2.0* Dot(v, n);
+    }
+    /// <summary>
+    /// 투영 벡터 구하기
+    /// </summary>
+    /// <param name="v"></param>
+    /// <param name="onto"></param>
+    /// <returns></returns>
+    public static Vector3D Project(Vector3D v, Vector3D onto)
+    {
+        double dot = Dot(v, onto);
+        return (dot*onto)/(onto.SqrMagnitude());
+    }
+    /// <summary>
+    /// 평면에 투영한 벡터 구하기
+    /// </summary>
+    /// <param name="v"></param>
+    /// <param name="planNormal"></param>
+    /// <returns></returns>
+    public static Vector3D ProjectOnPlane(Vector3D v, Vector3D planNormal)
+    {
+        return v-Project(v,planNormal);
+    }
+    /// <summary>
+    /// 속도 폭주 방지, 수치 발산 억제
+    /// </summary>
+    /// <param name="v"></param>
+    /// <param name="max"></param>
+    /// <returns></returns>
+    public static Vector3D ClampMagnitude(Vector3D v, double max)
+    {
+        double sqr = v.SqrMagnitude();
+        if (sqr <= max * max) return v;
+        return v * (max / MathUtility.Sqrt(sqr));
+    }
     #endregion
 }
