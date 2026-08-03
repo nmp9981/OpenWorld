@@ -59,7 +59,7 @@ public class PlanetInfo : MonoBehaviour
         this.position = new Vector3D(this.transform.position.x, 0, this.transform.position.z);
         dist = centerPlanet.position - this.position;
         orbitNormalDir = new Vector3D(0, 1, 0);
-        velocity = isStar ? Vector3D.ZeroVector() : SettingInitVelocity();
+        velocity = isStar ? Vector3D.Zero : SettingInitVelocity();
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ public class PlanetInfo : MonoBehaviour
     /// </summary>
     public Vector3D TotalAccel()
     {
-        Vector3D totalAccel = Vector3D.ZeroVector();
+        Vector3D totalAccel = Vector3D.Zero;
 
         foreach(var planet in PlanerManager.Instance._planetList)
         {

@@ -52,7 +52,7 @@ public class PlanerManager : MonoBehaviour
     /// </summary>
     void Cal_TotalMomentum()
     {
-        Vector3D totalMomentum = Vector3D.ZeroVector();
+        Vector3D totalMomentum = Vector3D.Zero;
         PlanetInfo sun = null;
         foreach (var planet in _planetList)
         {
