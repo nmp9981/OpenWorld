@@ -151,6 +151,21 @@ public struct Matrix3x3D
             && MathUtility.Abs(m02 + m20) < s
             && MathUtility.Abs(m12 + m21) < s;
     }
+    /// <summary>
+    /// 대칭 행렬 판정: Aᵀ ≈ A
+    /// eps 는 상대 오차 기준. 행렬 규모에 비례한 허용치를 사용한다.
+    /// </summary>
+    public bool IsSymmetric(double eps = 1e-12)
+    {
+        if (!IsFinite()) return false;
+
+        double s = MathUtility.Max(MaxAbs(), 1.0) * eps;
+
+        return MathUtility.Abs(m01 - m10) < s
+            && MathUtility.Abs(m02 - m20) < s
+            && MathUtility.Abs(m12 - m21) < s;
+    }
+
     // [ω]× → ω  (반대칭 가정)
     public Vector3D FromSkewSymmetric() => new Vector3D(m21, m02, m10);
 
@@ -219,13 +234,101 @@ public struct Matrix3x3D
     public double SecondIncariant() => (m00 * m11 - m01 * m10) + (m11 * m22 - m12 * m21) + (m00 * m22 - m02 * m20);
     
     // 대칭 행렬 전용. 고유값 오름차순, 고유벡터는 정규직교
-    public static bool SymmetricEigen(in Matrix3x3D a, out Vector3D eigenvalues,
-                                  out Matrix3x3D eigenvectors)
+    public static Vector3D SymmetricEigenvalues(in Matrix3x3D a)
     {
-        double traceA = a.Trace();
-        double secondA = a.SecondIncariant();
-        double detA = a.Determinamt();
+        double p1 = a.m01 * a.m01 + a.m02 * a.m02 + a.m12 * a.m12;
+        double q = a.Trace() / 3.0;
+
+        // 이미 대각행렬 → p = 0 이므로 나눗셈 불가. 정렬만 해서 반환
+        if (p1 <= ConstUtility.Epcilon12 * MathUtility.Max(q * q, 1.0))
+        {
+            double x = a.m00, y = a.m11, z = a.m22, t;
+            if (x > y) { t = x; x = y; y = t; }
+            if (y > z) { t = y; y = z; z = t; }
+            if (x > y) { t = x; x = y; y = t; }
+            return new Vector3D(x, y, z);
+        }
+
+        double d0 = a.m00 - q, d1 = a.m11 - q, d2 = a.m22 - q;
+        double p2 = d0 * d0 + d1 * d1 + d2 * d2 + 2.0 * p1;   // ‖A - qE‖²_F  (상쇄 없음)
+        double p = MathUtility.Sqrt(p2 / 6.0);
+
+        Matrix3x3D b = (a - Identity * q) * (1.0 / p);
+        double r = b.Determinamt() * 0.5;
+
+        r = MathUtility.ClampValue(r, -1.0, 1.0);          // 반올림으로 |r|>1 → Acos NaN 방지
+        double phi = MathUtility.ArkCos(r) / 3.0;       // φ ∈ [0, π/3]
+
+        const double TWO_PI_3 = 2.0943951023931953;   // 2π/3
+
+        double eMax = q + 2.0 * p * MathUtility.Cos(phi);
+        double eMin = q + 2.0 * p * MathUtility.Cos(phi + TWO_PI_3);
+        double eMid = 3.0 * q - eMax - eMin;          // 대각합 보존 — 세 번째 cos 보다 정확
+
+        return new Vector3D(eMin, eMid, eMax);        // 오름차순
     }
+    // 대칭 행렬 전용. 고유값 오름차순, 고유벡터는 정규직교(오른손 좌표계)
+    public static bool SymmetricEigen(in Matrix3x3D a, out Vector3D eigenvalues,
+                                      out Matrix3x3D eigenvectors)
+    {
+        eigenvalues = Vector3D.Zero;
+        eigenvectors = Identity;
+
+        if (!a.IsSymmetric()) return false;           // 전제 조건 강제
+        if (!a.IsFinite()) return false;
+
+        eigenvalues = SymmetricEigenvalues(a);
+
+        // 양 끝(최소·최대)부터 — 중간 고유값은 중복근 가능성이 가장 높아 불안정
+        Vector3D v0, v1, v2;
+        bool okMin = NullVector(a - Identity * eigenvalues.x, out v0);
+        bool okMax = NullVector(a - Identity * eigenvalues.z, out v2);
+
+        if (okMin && okMax)
+        {
+            v1 = Vector3D.Cross(v2, v0).Normalized(); // 중간축은 외적으로 → 직교성 자동
+            v2 = Vector3D.Cross(v0, v1);              // 재직교화
+        }
+        else if (okMin)                               // λ₂ = λ₃ 중복
+        {
+            Vector3D.BuildOrthonormalBasis(v0, out v1, out v2);
+        }
+        else if (okMax)                               // λ₁ = λ₂ 중복
+        {
+            Vector3D.BuildOrthonormalBasis(v2, out v0, out v1);
+            Vector3D t = v0; v0 = v1; v1 = t;         // v2 가 최대축을 유지하도록 정리
+        }
+        else                                          // 삼중근 → 등방, 임의 기저
+        {
+            v0 = Vector3D.Right; v1 = Vector3D.Up; v2 = Vector3D.Forward;
+        }
+
+        if (Vector3D.Dot(Vector3D.Cross(v0, v1), v2) < 0.0) v2 = -v2;  // det = +1 강제
+
+        eigenvectors = FromCols(v0, v1, v2);
+        return true;
+    }
+
+    // (A - λE) 의 영공간 벡터. 행 두 개의 외적 중 가장 긴 것을 채택.
+    private static bool NullVector(in Matrix3x3D m, out Vector3D v)
+    {
+        Vector3D c01 = Vector3D.Cross(m.Row0, m.Row1);
+        Vector3D c02 = Vector3D.Cross(m.Row0, m.Row2);
+        Vector3D c12 = Vector3D.Cross(m.Row1, m.Row2);
+
+        double s01 = c01.SqrMagnitude(), s02 = c02.SqrMagnitude(), s12 = c12.SqrMagnitude();
+
+        double best = s01; v = c01;
+        if (s02 > best) { best = s02; v = c02; }
+        if (s12 > best) { best = s12; v = c12; }
+
+        double scale = MathUtility.Max(m.MaxAbs(), 1.0);
+        if (best < ConstUtility.Epcilon12 * scale * scale) { v = Vector3D.Zero; return false; }
+
+        v = v.Normalized();
+        return true;
+    }
+
     // QR — 한 번에 끝남
     public Matrix3x3D GramSchmidt()
     {
