@@ -13,6 +13,10 @@ public static class ConstUtility
     //원주율
     public const double PI = 3.141592;
 
+    //삼각함수 변환
+    public const double Rad2Deg = 57.29578f;
+    public const double Deg2Rad = 0.0174533f;
+
     //거듭제곱 상수
     public const double Epcilon12 = 1e-12;
     public const double PowM11 = 1e-11;
