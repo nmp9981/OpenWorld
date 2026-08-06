@@ -1,24 +1,24 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 
 /// <summary>
-/// ÄõÅÍ´Ï¾ğ Á¤ÀÇ
+/// ì¿¼í„°ë‹ˆì–¸ ì •ì˜
 /// </summary>
 [System.Serializable]
 public struct CustomQuaternion
 {
-    //¼ººĞ(½ºÄ®¶ó + º¤ÅÍ)
+    //ì„±ë¶„(ìŠ¤ì¹¼ë¼ + ë²¡í„°)
     public double scala;
     public Vector3D vec;
 
-    //»ı¼ºÀÚ
+    //ìƒì„±ì
     public CustomQuaternion(double scala, Vector3D vec)
     {
         this.scala = scala;
         this.vec = vec;
     }
 
-    //¿¬»êÀÚ
+    //ì—°ì‚°ì
     public static CustomQuaternion operator +(CustomQuaternion a, CustomQuaternion b)
         => new CustomQuaternion(a.scala + b.scala, a.vec+ b.vec);
     public static CustomQuaternion operator -(CustomQuaternion a, CustomQuaternion b)
@@ -34,31 +34,46 @@ public struct CustomQuaternion
         => new CustomQuaternion(q.scala * d, q.vec * d);
     public static CustomQuaternion operator *(double d,CustomQuaternion q)
         => new CustomQuaternion(q.scala * d, q.vec * d);
-    //·ÎÄÃ °ø°£ÀÇ ÃàÀ» ¿ùµå °ø°£À¸·Î È¸Àü
+    //ë¡œì»¬ ê³µê°„ì˜ ì¶•ì„ ì›”ë“œ ê³µê°„ìœ¼ë¡œ íšŒì „
     public static Vector3D operator *(CustomQuaternion q, Vector3D v)
     {
-        // º¤ÅÍ¸¦ quaternionÀ¸·Î º¯È¯
+        // ë²¡í„°ë¥¼ quaternionìœ¼ë¡œ ë³€í™˜
         CustomQuaternion qv = new CustomQuaternion(0.0, v);
-        // È¸Àü: q * v * q^-1
+        // íšŒì „: q * v * q^-1
         CustomQuaternion result = q * qv * q.Conjugate;
         return result.vec;
     }
     public static CustomQuaternion operator /(CustomQuaternion q, double d)
         => new CustomQuaternion(q.scala / d, q.vec / d);
 
-    //Å©±â
+    //í¬ê¸°
     public double SqrMagnitude => scala * scala + Vector3D.Dot(vec, vec);
     public double Magnitude => MathUtility.Sqrt(scala * scala + Vector3D.Dot(vec, vec));
-    public CustomQuaternion Normalized => new CustomQuaternion(scala / Magnitude, vec / Magnitude);
+    public CustomQuaternion Normalized
+    {
+        get
+        {
+            double sq = SqrMagnitude;
+            if (sq < ConstUtility.Epcilon12) return Identity;   // íšŒì „ì€ Identityê°€ ì•ˆì „í•œ í´ë°±
+            double inv = 1.0 / MathUtility.Sqrt(sq);
+            return new CustomQuaternion(scala * inv, vec * inv);
+        }
+    }
 
-    //ÄÓ·¹
+    //ì—­ìˆ˜
+    public static CustomQuaternion Inverse(CustomQuaternion q)
+    {
+        return q.Conjugate / q.SqrMagnitude;
+    }
+
+    //ì¼¤ë ˆ
     public CustomQuaternion Conjugate => new CustomQuaternion(scala, new Vector3D(-vec.x, -vec.y, -vec.z));
 
-    //´ÜÀ§ ÄõÅÍ´Ï¾ğ
+    //ë‹¨ìœ„ ì¿¼í„°ë‹ˆì–¸
     public static CustomQuaternion Identity=>new CustomQuaternion(1.0, new Vector3D(0, 0, 0));
 
     /// <summary>
-    /// ¼±Çü º¸°£
+    /// ì„ í˜• ë³´ê°„
     /// </summary>
     /// <param name="a"></param>
     /// <param name="b"></param>
@@ -73,7 +88,7 @@ public struct CustomQuaternion
         return result.Normalized;
     }
     /// <summary>
-    /// ±¸¸é ¼±Çü º¸°£. ÃÖ´Ü °æ·Î·Î º¸°£ÇÑ´Ù.
+    /// êµ¬ë©´ ì„ í˜• ë³´ê°„. ìµœë‹¨ ê²½ë¡œë¡œ ë³´ê°„í•œë‹¤.
     /// </summary>
     public static CustomQuaternion Slerp(CustomQuaternion a, CustomQuaternion b, double t)
     {
@@ -82,7 +97,7 @@ public struct CustomQuaternion
 
         double cosOmega = Dot(a, b);
 
-        // double cover: ¸Õ ±æ ¹æÁö
+        // double cover: ë¨¼ ê¸¸ ë°©ì§€
         if (cosOmega < 0.0)
         {
             b = -b;
@@ -93,7 +108,7 @@ public struct CustomQuaternion
 
         if (cosOmega > SLERP_THRESHOLD)
         {
-            // °ÅÀÇ µ¿ÀÏÇÑ È¸Àü -> Nlerp Æú¹é
+            // ê±°ì˜ ë™ì¼í•œ íšŒì „ -> Nlerp í´ë°±
             CustomQuaternion r = a + (b - a) * t;
             return r.Normalized;
         }
@@ -108,44 +123,156 @@ public struct CustomQuaternion
         return a * wa + b * wb;
     }
 
-    //³»Àû
+    //ë‚´ì 
     public static double Dot(CustomQuaternion a, CustomQuaternion b)
     => a.scala * b.scala + Vector3D.Dot(a.vec, b.vec);
 
     /// <summary>
-    /// b¸¦ a¿Í °°Àº ¹İ±¸·Î Á¤·Ä. È¸Àü ÀÚÃ¼´Â º¯ÇÏÁö ¾Ê´Â´Ù(double cover).
+    /// bë¥¼ aì™€ ê°™ì€ ë°˜êµ¬ë¡œ ì •ë ¬. íšŒì „ ìì²´ëŠ” ë³€í•˜ì§€ ì•ŠëŠ”ë‹¤(double cover).
     /// </summary>
     public static CustomQuaternion EnsureShortestPath(CustomQuaternion a, CustomQuaternion b)
         => Dot(a, b) < 0.0 ? -b : b;
 
     /// <summary>
-    /// µÎ È¸Àü »çÀÌ ÃÖ´Ü °¢µµ (¶óµğ¾È, [0, PI])
+    /// ë‘ íšŒì „ ì‚¬ì´ ìµœë‹¨ ê°ë„ (ë¼ë””ì•ˆ, [0, PI])
     /// </summary>
     public static double Angle(CustomQuaternion a, CustomQuaternion b)
     {
-        CustomQuaternion d = a.Conjugate * b;      // ´ÜÀ§ ÀüÁ¦: ¿ª¿ø = ÄÓ·¹
+        CustomQuaternion d = a.Conjugate * b;      // ë‹¨ìœ„ ì „ì œ: ì—­ì› = ì¼¤ë ˆ
         double vLen = d.vec.Magnitude();
-        double wAbs = MathUtility.Abs(d.scala);    // Àı´ñ°ª = ÃÖ´Ü °æ·Î
+        double wAbs = MathUtility.Abs(d.scala);    // ì ˆëŒ“ê°’ = ìµœë‹¨ ê²½ë¡œ
         return 2.0 * MathUtility.ArkTan2(vLen, wAbs);
     }
 
     /// <summary>
-    /// ºü¸¥ ±Ù»çÆÇ. Á¤¹Ğµµ°¡ ÇÊ¿ä ¾ø´Â broad-phase ¿ëµµ.
+    /// ë¹ ë¥¸ ê·¼ì‚¬íŒ. ì •ë°€ë„ê°€ í•„ìš” ì—†ëŠ” broad-phase ìš©ë„.
     /// </summary>
     public static double AngleFast(CustomQuaternion a, CustomQuaternion b)
     {
         double d = MathUtility.Abs(Dot(a, b));
         return 2.0 * MathUtility.ArkCos(MathUtility.ClampValue(d, -1.0, 1.0));
     }
+
+    /// <summary>
+    /// ì¶• ê°ë„ êµ¬í•˜ê¸°
+    /// </summary>
+    /// <param name="axis"></param>
+    /// <param name="angle"></param>
+    /// <returns></returns>
+    public static CustomQuaternion AxisAngle(Vector3D axis, double angle)
+    {
+        axis = axis.Normalized();
+
+        double half = angle * 0.5;
+
+        double s = MathUtility.Sin(half);
+        double c = MathUtility.Cos(half);
+
+        CustomQuaternion q;
+
+        q.vec.x = axis.x * s;
+        q.vec.y = axis.y * s;
+        q.vec.z = axis.z * s;
+        q.scala = c;
+
+        return q;
+    }
+
+    /// <summary>
+    /// íšŒì „ ì ë¶„
+    /// </summary>
+    /// <param name="rot"></param>
+    /// <param name="corr"></param>
+    /// <param name="dt"></param>
+    /// <returns></returns>
+    public static CustomQuaternion IntegrateRotation(CustomQuaternion rot, Vector3D corr, double dt)
+    {
+        CustomQuaternion omegaQ = new CustomQuaternion(0.0, corr);
+        CustomQuaternion dq = rot * omegaQ;
+        CustomQuaternion nextRot = rot + dq * (0.5 * dt);
+        return nextRot.Normalized;
+    }
+    /// <summary>
+    /// q íšŒì „ ì¤‘ì—ì„œ ì£¼ì–´ì§„ axis ë°©í–¥ìœ¼ë¡œ â€œì–¼ë§ˆë‚˜ íšŒì „í–ˆëŠ”ê°€â€ (signed angle)
+    /// </summary>
+    /// <param name="q"></param>
+    /// <param name="axis"></param>
+    /// <returns></returns>
+    public static double TwistAngle(CustomQuaternion q, Vector3D axis)
+    {
+        Vector3D n = axis.Normalized();
+        double proj = Vector3D.Dot(q.vec, n);      // twist ì„±ë¶„ì˜ ë¶€í˜¸ ìˆëŠ” í¬ê¸°
+
+        // atan2ê°€ ë¶€í˜¸ì™€ [-PI, PI] ë²”ìœ„ë¥¼ ë™ì‹œì— ì²˜ë¦¬
+        double angle = 2.0 * MathUtility.ArkTan2(proj, q.scala);
+
+        // [-PI, PI]ë¡œ ë˜í•‘
+        if (angle > ConstUtility.PI) angle -= 2.0 * ConstUtility.PI;
+        if (angle < -ConstUtility.PI) angle += 2.0 * ConstUtility.PI;
+        return angle;
+    }
+
+    /// <summary>
+    /// ì¶• ê¸°ì¤€ thetaë§Œí¼ íšŒì „í•œ ì¿¼í„°ë‹ˆì–¸
+    /// </summary>
+    /// <param name="angle"></param>
+    /// <param name="axis"></param>
+    /// <returns></returns>
+    public static CustomQuaternion AngleAxis(double angle, Vector3D axis)
+    {
+        axis = axis.Normalized();
+        double half = angle * 0.5;
+
+        double sinHalf = MathUtility.Sin(half);
+        double cosHalf = MathUtility.Cos(half);
+
+        Vector3D axisRotVec = new Vector3D(axis.x * sinHalf, axis.y * sinHalf, axis.z * sinHalf);
+        return new CustomQuaternion { scala = cosHalf, vec = axisRotVec };
+    }
+    /// <summary>íšŒì „ë²¡í„°(ì¶•*ê°ë„) -> ì¿¼í„°ë‹ˆì–¸</summary>
+    public static CustomQuaternion Exp(Vector3D rotVec)
+    {
+        double theta = rotVec.Magnitude();
+        if (theta < ConstUtility.Epcilon12)
+        {
+            // ì†Œê° ê·¼ì‚¬: sin(Î¸/2)/Î¸ â†’ 1/2. í…Œì¼ëŸ¬ ì „ê°œë¡œ íŠ¹ì´ì  íšŒí”¼
+            return new CustomQuaternion(1.0, rotVec * 0.5).Normalized;
+        }
+        double half = theta * 0.5;
+        return new CustomQuaternion(
+            MathUtility.Cos(half),
+            rotVec * (MathUtility.Sin(half) / theta));
+    }
+
+    /// <summary>ì¿¼í„°ë‹ˆì–¸ -> íšŒì „ë²¡í„°(ì¶•*ê°ë„), [-PI, PI] ë²”ìœ„</summary>
+    public static Vector3D Log(CustomQuaternion q)
+    {
+        q = q.Normalized;
+        if (q.scala < 0.0) q = -q;              // ìµœë‹¨ ê²½ë¡œ ë³´ì¥
+
+        double vLen = q.vec.Magnitude();
+        if (vLen < ConstUtility.Epcilon12)
+            return q.vec * 2.0;                  // ì†Œê° ê·¼ì‚¬
+
+        double theta = 2.0 * MathUtility.ArkTan2(vLen, q.scala);
+        return q.vec * (theta / vLen);
+    }
+    /// <summary>ë‘ ìì„¸ë¡œë¶€í„° ê°ì†ë„ ì—­ì‚° (body-local í”„ë ˆì„)</summary>
+    public static Vector3D AngularVelocityFrom(CustomQuaternion q0, CustomQuaternion q1, double dt)
+    {
+        if (dt < ConstUtility.Epcilon12) return Vector3D.Zero;
+        CustomQuaternion dq = q0.Conjugate * EnsureShortestPath(q0, q1);
+        return Log(dq) / dt;
+    }
 }
 
 
-public class QuaternionUtility
+public static class QuaternionUtility
 {
-    //3*3Çà·ÄÀ» ÄõÅÍ´Ï¾ğÀ¸·Î º¯È¯
+    //3*3í–‰ë ¬ì„ ì¿¼í„°ë‹ˆì–¸ìœ¼ë¡œ ë³€í™˜
     public static CustomQuaternion Mat3ToQuaternion(Matrix3x3D m)
     {
-        //´ë°¢ÇÕ
+        //ëŒ€ê°í•©
         double trace = m.Trace();
 
         if (trace > 0.0)
@@ -187,14 +314,14 @@ public class QuaternionUtility
     }
 
     /// <summary>
-    /// ÄõÅÍ´Ï¾ğ -> 3x3 È¸ÀüÇà·Ä. ´ÜÀ§ ÄõÅÍ´Ï¾ğÀÌ ¾Æ´Ï¸é ³»ºÎ¿¡¼­ Á¤±ÔÈ­ÇÑ´Ù.
+    /// ì¿¼í„°ë‹ˆì–¸ -> 3x3 íšŒì „í–‰ë ¬. ë‹¨ìœ„ ì¿¼í„°ë‹ˆì–¸ì´ ì•„ë‹ˆë©´ ë‚´ë¶€ì—ì„œ ì •ê·œí™”í•œë‹¤.
     /// </summary>
     public static Matrix3x3D QuaternionToMat3(CustomQuaternion q)
     {
         double sq = q.SqrMagnitude;
         if (sq < ConstUtility.Epcilon12) return Matrix3x3D.Identity;
 
-        // ºñ´ÜÀ§ ÄõÅÍ´Ï¾ğ ´ëÀÀ: s = 2/|q|^2 ·Î ½ºÄÉÀÏ Èí¼ö
+        // ë¹„ë‹¨ìœ„ ì¿¼í„°ë‹ˆì–¸ ëŒ€ì‘: s = 2/|q|^2 ë¡œ ìŠ¤ì¼€ì¼ í¡ìˆ˜
         double s = 2.0 / sq;
 
         double w = q.scala, x = q.vec.x, y = q.vec.y, z = q.vec.z;
@@ -210,14 +337,8 @@ public class QuaternionUtility
             xz - wy, yz + wx, 1.0 - (xx + yy));
     }
 
-    //¿ª¼ö
-    public static CustomQuaternion Inverse(CustomQuaternion q)
-    {
-        return q.Conjugate / q.SqrMagnitude;
-    }
-
     /// <summary>
-    /// ¿ÀÀÏ·¯ °¢ -> ÄõÆ¼´Ï¾ğ
+    /// ì˜¤ì¼ëŸ¬ ê° -> ì¿¼í‹°ë‹ˆì–¸
     /// </summary>
     /// <param name="eulerAngle"></param>
     /// <returns></returns>
@@ -227,100 +348,42 @@ public class QuaternionUtility
         double radY = y * ConstUtility.Deg2Rad;
         double radZ = z * ConstUtility.Deg2Rad;
 
-        CustomQuaternion qx = AxisAngle(new Vector3D(1, 0, 0), radX);
-        CustomQuaternion qy = AxisAngle(new Vector3D(0, 1, 0), radY);
-        CustomQuaternion qz = AxisAngle(new Vector3D(0, 0, 1), radZ);
+        CustomQuaternion qx = CustomQuaternion.AxisAngle(new Vector3D(1, 0, 0), radX);
+        CustomQuaternion qy = CustomQuaternion.AxisAngle(new Vector3D(0, 1, 0), radY);
+        CustomQuaternion qz = CustomQuaternion.AxisAngle(new Vector3D(0, 0, 1), radZ);
 
         // Unity style rotation order
         CustomQuaternion q = qy * (qx * qz);
 
         return q.Normalized;
     }
-
     /// <summary>
-    /// Ãà °¢µµ ±¸ÇÏ±â
+    /// ë²¡í„° Aë¥¼ Bë¡œ ì •ë ¬í•˜ëŠ” ìµœì†Œ íšŒì „. ì¡°ì¸íŠ¸Â·ì œì•½ì—ì„œ ê³„ì† ì“°ì—¬.
     /// </summary>
-    /// <param name="axis"></param>
-    /// <param name="angle"></param>
+    /// <param name="from"></param>
+    /// <param name="to"></param>
     /// <returns></returns>
-    public static CustomQuaternion AxisAngle(Vector3D axis, double angle)
+    public static CustomQuaternion FromToRotation(Vector3D from, Vector3D to)
     {
-        axis.Normalized();
+        Vector3D f = from.Normalized();
+        Vector3D t = to.Normalized();
+        double d = Vector3D.Dot(f, t);
 
-        double half = angle * 0.5;
+        // ì •ë°˜ëŒ€ ë°©í–¥: íšŒì „ì¶•ì´ ë¬´í•œíˆ ë§ìŒ -> ìˆ˜ì§ì¸ ì¶• ì•„ë¬´ê±°ë‚˜
+        if (d < -1.0 + ConstUtility.Epcilon12)
+        {
+            Vector3D axis = Vector3D.Cross(new Vector3D(1, 0, 0), f);
+            if (axis.SqrMagnitude() < ConstUtility.Epcilon12)
+                axis = Vector3D.Cross(new Vector3D(0, 1, 0), f);
+            return new CustomQuaternion(0.0, axis.Normalized());
+        }
 
-        double s = MathUtility.Sin(half);
-        double c = MathUtility.Cos(half);
-
-        CustomQuaternion q;
-
-        q.vec.x = axis.x * s;
-        q.vec.y = axis.y * s;
-        q.vec.z = axis.z * s;
-        q.scala = c;
-
-        return q;
+        // ë°˜ê° ê³µì‹: w = sqrt(2(1+d))/2, v = cross/sqrt(2(1+d))
+        double s = MathUtility.Sqrt(2.0 * (1.0 + d));
+        return new CustomQuaternion(s * 0.5, Vector3D.Cross(f, t) / s).Normalized;
     }
 
-    /// <summary>
-    /// È¸Àü ÀûºĞ
-    /// </summary>
-    /// <param name="rot"></param>
-    /// <param name="corr"></param>
-    /// <param name="dt"></param>
-    /// <returns></returns>
-    public static CustomQuaternion IntegrateRotation(CustomQuaternion rot, Vector3D corr, double dt)
-    {
-        CustomQuaternion omegaQ = new CustomQuaternion(0.0, corr);
-        CustomQuaternion dq = rot * omegaQ;
-        CustomQuaternion nextRot = rot + dq * (0.5 * dt);
-        return nextRot.Normalized;
-    }
-    /// <summary>
-    /// q È¸Àü Áß¿¡¼­ ÁÖ¾îÁø axis ¹æÇâÀ¸·Î ¡°¾ó¸¶³ª È¸ÀüÇß´Â°¡¡± (signed angle)
-    /// </summary>
-    /// <param name="q"></param>
-    /// <param name="axis"></param>
-    /// <returns></returns>
-    public static double TwistAngle(CustomQuaternion q, Vector3D axis)
-    {
-        // ¹İµå½Ã Á¤±ÔÈ­
-        Vector3D n = axis.Normalized();
-
-        // quaternion vector part
-        Vector3D v = q.vec;
-
-        // twist ¼ººĞ ÃßÃâ (projection)
-        Vector3D vTwist = n * Vector3D.Dot(v, n);
-
-        // twist quaternion
-        CustomQuaternion qTwist = new CustomQuaternion(q.scala, vTwist);
-        qTwist = qTwist.Normalized;
-
-        // angle = 2 * acos(w)
-        double angle = 2.0* MathUtility.ArkCos(MathUtility.ClampValue(qTwist.scala, -1, 1));
-
-        // ºÎÈ£ °áÁ¤ (Ãà ¹æÇâ)
-        double sign = Vector3D.Dot(vTwist, n) >= 0.0f ? 1.0 : -1.0;
-        return angle * sign;
-    }
-
-    /// <summary>
-    /// Ãà ±âÁØ theta¸¸Å­ È¸ÀüÇÑ ÄõÅÍ´Ï¾ğ
-    /// </summary>
-    /// <param name="angle"></param>
-    /// <param name="axis"></param>
-    /// <returns></returns>
-    public static CustomQuaternion AngleAxis(double angle, Vector3D axis)
-    {
-        axis = axis.Normalized();
-        double half = angle * 0.5;
-
-        double sinHalf = MathUtility.Sin(half);
-        double cosHalf = MathUtility.Cos(half);
-
-        Vector3D axisRotVec = new Vector3D(axis.x * sinHalf, axis.y * sinHalf, axis.z * sinHalf);
-        return new CustomQuaternion { scala = cosHalf, vec = axisRotVec };
-    }
-
+    /// <summary>ì›”ë“œ -> ë¡œì»¬ (qâ»Â¹ v q). Inverse ê°ì²´ ìƒì„± ì—†ì´</summary>
+    public static Vector3D InverseRotate(CustomQuaternion q, Vector3D v)
+        => q.Conjugate * v;
 }
