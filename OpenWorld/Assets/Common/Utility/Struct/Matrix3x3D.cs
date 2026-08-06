@@ -75,7 +75,7 @@ public struct Matrix3x3D
            a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20, a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21, a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22,
             a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20, a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21, a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22);
     public static Matrix3x3D operator /(Matrix3x3D a, double b)
-        => (b==0)?Nan :new Matrix3x3D(a.m00 / b, a.m01 / b, a.m02 / b,
+        => (b==0)?NaN :new Matrix3x3D(a.m00 / b, a.m01 / b, a.m02 / b,
             a.m10 / b, a.m11 / b, a.m12 / b,
             a.m20 / b, a.m21 / b, a.m22 / b);
 
@@ -125,7 +125,7 @@ public struct Matrix3x3D
     public static readonly Matrix3x3D Zero = default;
     public static readonly Matrix3x3D Identity = new Matrix3x3D(1,0,0,0,1,0,0,0,1);
     //Nan
-    public static readonly Matrix3x3D Nan = new Matrix3x3D(double.NaN, double.NaN, double.NaN,
+    public static readonly Matrix3x3D NaN = new Matrix3x3D(double.NaN, double.NaN, double.NaN,
         double.NaN, double.NaN, double.NaN,
         double.NaN, double.NaN, double.NaN);
 
@@ -179,7 +179,7 @@ public struct Matrix3x3D
     public Matrix3x3D Inverse()
     {
         double det = Determinamt();
-        if (MathUtility.Abs(det) < ConstUtility.Epcilon12) return Nan;
+        if (MathUtility.Abs(det) < ConstUtility.Epcilon12) return NaN;
         double invDet = 1.0 / det;
         return new Matrix3x3D(
             (m11 * m22 - m12 * m21) * invDet,
@@ -384,26 +384,31 @@ public struct Matrix3x3D
     // 회전행렬 → 회전벡터
     public static Vector3D LogRotation(in Matrix3x3D r)
     {
-        double c = (r.Trace() - 1.0) * 0.5;
-        c = MathUtility.ClampValue(c, -1.0, 1.0);          // Acos NaN 방지
-        double theta = MathUtility.ArkCos(c);
+        // av = sinθ · ω̂  (반대칭부의 절반)
+        Vector3D av = new Vector3D(r.m21 - r.m12, r.m02 - r.m20, r.m10 - r.m01) * 0.5;
 
-        if (theta < 1e-8)                              // 항등에 가까움
-            return new Vector3D(r.m21 - r.m12, r.m02 - r.m20, r.m10 - r.m01) * 0.5;
+        double s = av.Magnitude();          // sinθ ≥ 0
+        double c = (r.Trace() - 1.0) * 0.5; // cosθ
+        double theta = MathUtility.ArkTan2(s, c);   // [0, π], 조건수 양호
 
-        if (theta > 3.14159265)                        // θ ≈ π — 반대칭부가 소실됨
+        // θ ≈ 0 : av ≈ θω̂ 이므로 그대로
+        if (s < 1e-12 && c > 0.0) return av;
+
+        // θ ≈ π : 반대칭부 소실 → (R+E)/2 = ω̂ω̂ᵀ 에서 축 추출
+        if (c < 0.0 && s < 1e-6)
         {
-            // (R + E)/2 = ω̂ω̂ᵀ 의 최대 열에서 축을 추출
-            Matrix3x3D s = (r + Identity) * 0.5;
-            Vector3D axis = s.Col0;
+            Matrix3x3D m = (r + Identity) * 0.5;
+            Vector3D axis = m.Col0;
             double best = axis.SqrMagnitude();
-            if (s.Col1.SqrMagnitude() > best) { axis = s.Col1; best = axis.SqrMagnitude(); }
-            if (s.Col2.SqrMagnitude() > best) { axis = s.Col2; }
-            return axis.Normalized() * theta;          // 부호 모호성 존재
-        }
+            if (m.Col1.SqrMagnitude() > best) { axis = m.Col1; best = axis.SqrMagnitude(); }
+            if (m.Col2.SqrMagnitude() > best) { axis = m.Col2; }
+            axis = axis.Normalized();
 
-        double k = theta / (2.0 * MathUtility.Sin(theta));
-        return new Vector3D(r.m21 - r.m12, r.m02 - r.m20, r.m10 - r.m01) * k;
+            // 부호 모호성 해소: av가 아직 살아있으면 그걸로 판정
+            if (Vector3D.Dot(axis, av) < 0.0) axis = -axis;
+            return axis * theta;
+        }
+        return av * (theta / s);   // θ/sinθ
     }
     public static Matrix3x3D Exp(in Matrix3x3D a)
     {
@@ -426,7 +431,7 @@ public struct Matrix3x3D
         const double c5 = 1.0 / 15840.0;
         const double c6 = 1.0 / 665280.0;
 
-        Matrix3x3D x2 = x * x, x3 = x2 * x, x4 = x2 * x2, x5 = x4 * x, x6 = x3 * x3;
+        Matrix3x3D x2 = x * x, x3 = x2 * x, x4 = x2 * x2, x6 = x3 * x3;
         // 짝수항: c0·E + c2·X² + c4·X⁴ + c6·X⁶
         Matrix3x3D even = Identity * c0 + x2 * c2 + x4 * c4 + x6 * c6;
 
