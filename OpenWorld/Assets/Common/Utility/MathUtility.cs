@@ -353,6 +353,7 @@ public static class MathUtility
         if (n % 2 == 0) return half*half;
         else return half * half * a;
     }
+
     /// <summary>
     /// 거듭지수 계산
     /// 실수일때는 e^xlna로 계산
@@ -448,6 +449,39 @@ public static class MathUtility
         else for (int i = 0; i < -k; i++) rootX *= 0.5;
         return rootX;
     }
+    /// <summary>
+    /// 세제곱근 계산
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="n"></param>
+    /// <returns></returns>
+    public static double Cbrt(double x)
+    {
+        if (x == 0) return 0;
+        if (double.IsNaN(x) || double.IsInfinity(x)) return x;//NaN
+        if (x < 0) return -Cbrt(-x);//음수 정의역
+
+        // 범위 축소: x = m · 8^k,  m ∈ [1, 8)  →  ∛x = ∛m · 2^k
+        int k = 0;
+        double m = x;
+        while (m >= 8) { m *= 0.125; k++; }
+        while (m < 1) { m *= 8; k--; }
+
+        double y = 0.5 + 0.3 * m;
+        const int MAX_ITER = 20;
+        for (int i = 0; i < MAX_ITER; i++)
+        {
+            double prev = y;
+            y = (2.0 * y + m / (y * y)) / 3.0;
+            if (Abs(y - prev) <= ConstUtility.Epcilon12 * y) break;
+        }
+
+        //축소한만큼 다시 곱함
+        if (k >= 0) for (int i = 0; i < k; i++) y *= 2;
+        else for (int i = 0; i < -k; i++) y *= 0.5;
+        return y;
+    }
+
     /// <summary>
     /// 자연로그 계산
     /// </summary>
