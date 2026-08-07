@@ -447,4 +447,130 @@ public struct Matrix3x3D
         for (int i = 0; i < s; i++) result = result * result;
         return result;
     }
+
+    /// <summary>
+    /// Cholesky (A = LLᵀ) 분해. 하삼각 L을 반환.
+    /// 실패하면 A가 대칭 양정치가 아니라는 뜻.
+    /// </summary>
+    public bool CholeskyDecompose(out Matrix3x3D l)
+    {
+        l = Zero;
+
+        // 대칭성은 상삼각을 무시하는 것으로 암묵 가정 (하삼각만 사용)
+        double d0 = m00;
+        if (d0 <= 0.0) return false;
+        double l00 = MathUtility.Sqrt(d0);
+        double inv00 = 1.0 / l00;
+
+        double l10 = m10 * inv00;
+        double l20 = m20 * inv00;
+
+        double d1 = m11 - l10 * l10;
+        if (d1 <= 0.0) return false;
+        double l11 = MathUtility.Sqrt(d1);
+
+        double l21 = (m21 - l20 * l10) / l11;
+
+        double d2 = m22 - l20 * l20 - l21 * l21;
+        if (d2 <= 0.0) return false;
+        double l22 = MathUtility.Sqrt(d2);
+
+        l = new Matrix3x3D(l00, 0.0, 0.0,
+                           l10, l11, 0.0,
+                           l20, l21, l22);
+        return true;
+    }
+
+    /// <summary>
+    /// 대칭 양정치 전용 해법. 관성텐서(ω = I⁻¹L)에 최적.
+    /// 실패하면 SPD가 아님 → Solve()로 폴백할 것.
+    /// </summary>
+    public bool SolveSPD(Vector3D b, out Vector3D x)
+    {
+        x = Vector3D.Zero;
+        if (!CholeskyDecompose(out Matrix3x3D l)) return false;
+
+        // 전방대입 L y = b
+        double y0 = b.x / l.m00;
+        double y1 = (b.y - l.m10 * y0) / l.m11;
+        double y2 = (b.z - l.m20 * y0 - l.m21 * y1) / l.m22;
+
+        // 후방대입 Lᵀ x = y
+        double x2 = y2 / l.m22;
+        double x1 = (y1 - l.m21 * x2) / l.m11;
+        double x0 = (y0 - l.m10 * x1 - l.m20 * x2) / l.m00;
+
+        x = new Vector3D(x0, x1, x2);
+        return true;
+    }
+
+    /// <summary>
+    /// A x = b. 부분 피벗 LU. Inverse()*b 보다 정확.
+    /// </summary>
+    public bool Solve(Vector3D b, out Vector3D x)
+    {
+        x = Vector3D.Zero;
+
+        // 작업 복사본 (readonly struct 전제)
+        double a00 = m00, a01 = m01, a02 = m02;
+        double a10 = m10, a11 = m11, a12 = m12;
+        double a20 = m20, a21 = m21, a22 = m22;
+        double b0 = b.x, b1 = b.y, b2 = b.z;
+
+        double scale = MathUtility.Max(MaxAbs(), 1.0);
+        double tol = ConstUtility.Epcilon12 * scale;
+
+        // --- 1열 피벗 ---
+        double p0 = MathUtility.Abs(a00), p1 = MathUtility.Abs(a10), p2 = MathUtility.Abs(a20);
+        if (p1 > p0 && p1 >= p2)
+        {
+            Swap(ref a00, ref a10); Swap(ref a01, ref a11); Swap(ref a02, ref a12);
+            Swap(ref b0, ref b1);
+        }
+        else if (p2 > p0 && p2 > p1)
+        {
+            Swap(ref a00, ref a20); Swap(ref a01, ref a21); Swap(ref a02, ref a22);
+            Swap(ref b0, ref b2);
+        }
+        if (MathUtility.Abs(a00) < tol) return false;
+
+        // --- 1열 소거 ---
+        double f1 = a10 / a00;
+        double f2 = a20 / a00;
+        a11 -= f1 * a01; a12 -= f1 * a02; b1 -= f1 * b0;
+        a21 -= f2 * a01; a22 -= f2 * a02; b2 -= f2 * b0;
+
+        // --- 2열 피벗 ---
+        if (MathUtility.Abs(a21) > MathUtility.Abs(a11))
+        {
+            Swap(ref a11, ref a21); Swap(ref a12, ref a22);
+            Swap(ref b1, ref b2);
+        }
+        if (MathUtility.Abs(a11) < tol) return false;
+
+        // --- 2열 소거 ---
+        double f3 = a21 / a11;
+        a22 -= f3 * a12; b2 -= f3 * b1;
+        if (MathUtility.Abs(a22) < tol) return false;
+
+        // --- 후방대입 ---
+        double x2 = b2 / a22;
+        double x1 = (b1 - a12 * x2) / a11;
+        double x0 = (b0 - a01 * x1 - a02 * x2) / a00;
+
+        x = new Vector3D(x0, x1, x2);
+        return true;
+    }
+
+    private static void Swap(ref double a, ref double b) { double t = a; b = a + (a = b) - b; }
+
+    /// <summary>
+    /// ω = I⁻¹ L. SPD 경로 우선, 실패 시 LU 폴백.
+    /// </summary>
+    public Vector3D SolveInertia(Vector3D angularMomentum)
+    {
+        if (SolveSPD(angularMomentum, out Vector3D w)) return w;
+        if (Solve(angularMomentum, out w)) return w;
+        return Vector3D.Zero;   // 특이 관성텐서 (질량 0 등)
+    }
 }

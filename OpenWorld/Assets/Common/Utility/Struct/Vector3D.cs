@@ -201,5 +201,6 @@ public struct Vector3D
         if (sqr <= max * max) return v;
         return v * (max / MathUtility.Sqrt(sqr));
     }
+
     #endregion
 }

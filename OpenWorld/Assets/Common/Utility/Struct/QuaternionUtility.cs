@@ -264,6 +264,8 @@ public struct CustomQuaternion
         CustomQuaternion dq = q0.Conjugate * EnsureShortestPath(q0, q1);
         return Log(dq) / dt;
     }
+
+
 }
 
 
