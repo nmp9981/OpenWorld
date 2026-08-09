@@ -6,6 +6,17 @@ public struct RandomD
     private ulong state;
     private ulong inc;      // 스트림 식별자 (홀수여야 함)
 
+    //64비트 난수
+    public ulong NextULong() => ((ulong)NextUInt() << 32) | NextUInt();
+    public bool NextBool() => (NextUInt() >> 31) != 0;   // 최상위 비트
+
+    //상태 저장/복원, 체크포인트에서 재시작해도 같은 수열
+    public (ulong state, ulong inc) GetState() => (state, inc);
+    public void SetState(ulong s, ulong i) { state = s; inc = i | 1UL; }
+    //시드 없는 생성자
+    public static RandomD CreateFromTime()
+    => new RandomD((ulong)System.DateTime.Now.Ticks);
+
     // 시드 확산 — SplitMix64
     private static ulong Mix(ulong z)
     {
@@ -27,6 +38,8 @@ public struct RandomD
     // PCG32
     public uint NextUInt()
     {
+        if (inc == 0UL) InitDefault();
+
         ulong old = state;
         state = old * 6364136223846793005UL + inc;
         uint xorshifted = (uint)(((old >> 18) ^ old) >> 27);
@@ -36,10 +49,19 @@ public struct RandomD
 
     public double NextDouble()
     {
-        // 상위 53비트를 뽑아 [0,1) 로. double 가수부와 정확히 일치
-        ulong bits = ((ulong)NextUInt() << 32) | NextUInt();
-        return (bits >> 11) * (1.0 / 9007199254740992.0);   // 2^53
+        ulong hi = NextUInt();
+        ulong lo = NextUInt();
+        return (((hi << 32) | lo) >> 11) * (1.0 / 9007199254740992.0);
     }
+    /// <summary>
+    /// 랜덤 값 초기화
+    /// </summary>
+    public void InitDefault()
+    {
+        RandomD rng = default;
+        rng.NextUInt();
+    }
+
     /// <summary>단정밀도 해상도(2^24)면 충분한 경우. 호출 1회.</summary>
     public double NextDoubleFast()
     {
@@ -53,11 +75,26 @@ public struct RandomD
     /// <returns></returns>
     public double Range(double min, double max)
     {
-        double r = min + (max - min) * NextDouble();
-        return r < max ? r :min;   // 또는 그냥 min 반환
+        if (max <= min) return min;
+        double r;
+        do { r = min + (max - min) * NextDouble(); } while (r >= max);
+        return r;
+    }
+    /// <summary>
+    /// 랜덤 범위
+    /// </summary>
+    /// <param name="min"></param>
+    /// <param name="max"></param>
+    /// <returns></returns>
+    public int Range(int min, int max)   // [min, max)
+    {
+        if (max <= min) return min;
+        return min + (int)NextUInt((uint)((long)max - min));
     }
     public uint NextUInt(uint bound)   // [0, bound)
     {
+        if (bound == 0) return 0;   // 또는 예외
+
         ulong m = (ulong)NextUInt() * bound;
         uint low = (uint)m;
         if (low < bound)
