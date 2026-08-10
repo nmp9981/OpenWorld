@@ -265,7 +265,31 @@ public struct CustomQuaternion
         return Log(dq) / dt;
     }
 
+    /// <summary>
+    /// 쿼터니언이 수치적으로 발산(오염)했는지 감지.
+    /// true = 발산(무효), false = 정상.
+    /// </summary>
+    public bool IsFinite(double tolerance = 1e-3)
+    {
+        // ① NaN / Inf 검사 — 성분 하나라도 오염되면 회전 전체가 무효
+        if (double.IsNaN(scala) || double.IsInfinity(scala) ||
+            double.IsNaN(vec.x) || double.IsInfinity(vec.x) ||
+            double.IsNaN(vec.y) || double.IsInfinity(vec.y) ||
+            double.IsNaN(vec.z) || double.IsInfinity(vec.z))
+            return true;
 
+        // ② 단위 크기 이탈 검사 — ‖q‖²가 1에서 얼마나 벗어났나
+        //    Sqrt를 피해 제곱 크기로 비교 (빠르고 정확)
+        double sqrMag = scala * scala + vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+        if (MathUtility.Abs(sqrMag - 1.0) > tolerance)
+            return true;
+
+        // ③ 영벡터화 검사 — 크기가 0에 붕괴하면 회전 정보 소실
+        if (sqrMag < ConstUtility.Epcilon12)
+            return true;
+
+        return false;
+    }
 }
 
 
