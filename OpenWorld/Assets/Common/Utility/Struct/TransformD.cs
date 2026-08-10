@@ -114,4 +114,21 @@ public struct TransformD
 
     public override string ToString()
         => $"pos({position}) rot({rotation})";
+
+    #region 강체 물리
+    /// <summary>두 자세 사이의 상대 변환. from에서 to로 가는 T</summary>
+    public static TransformD Delta(TransformD from, TransformD to)=>to*from.Inverse;
+
+    /// <summary>
+    /// 각속도로 적분 (ω는 월드 프레임)
+    /// </summary>
+    /// <param name="omegaWorld"></param>
+    /// <param name="dt"></param>
+    /// <returns></returns>
+    public TransformD IntegrateAngular(Vector3D omegaWorld, double dt)
+    {
+        CustomQuaternion dq = CustomQuaternion.Exp(omegaWorld * dt);
+        return new TransformD(position, (dq * rotation).Normalized);
+    }
+    #endregion
 }
