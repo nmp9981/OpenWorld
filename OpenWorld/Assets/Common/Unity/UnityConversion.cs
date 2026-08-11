@@ -16,7 +16,12 @@ public static class UnityConversion
     //Quaternion
     public static Quaternion ToUnity(this CustomQuaternion q)
     {
-        return new Quaternion((float)q.vec.x, (float)q.vec.y, (float)q.vec.z, (float)q.scala);
+        Quaternion r;
+        r.x = (float)q.vec.x;
+        r.y = (float)q.vec.y;
+        r.z = (float)q.vec.z;
+        r.w = (float)q.scala;
+        return r;
     }
     public static CustomQuaternion ToDouble(this Quaternion q)
     {
