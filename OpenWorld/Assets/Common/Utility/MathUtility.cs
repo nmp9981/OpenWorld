@@ -392,26 +392,35 @@ public static class MathUtility
     /// <returns></returns>
     public static double Exp(double x)
     {
-        //범위 축소
-        int k = 0;
-        while ((x<0?-x:x)>1)
-        {
-            x *= 0.5;
-            k++;
-        }
+        if (double.IsNaN(x)) return double.NaN;
+        if (x > 709.782712893384) return double.PositiveInfinity;
+        if (x < -745.133219101941) return 0.0;
 
-        //테일러 급수, e^(t/2^k)
-        double term = 1;
-        double sum = 1;
-        for(int i = 1; i <= 12; i++)
+        // e^x = 2^n * e^r,  |r| <= ln2/2
+        long n = RoundToInt(x * ConstUtility.INV_LN2);
+        double r = x - n * ConstUtility.LN2_HI;
+        r -= n * ConstUtility.LN2_LO;
+
+        // e^r 테일러, |r| <= 0.347
+        double term = 1.0;
+        double sum = 1.0;
+        for (int i = 1; i <= 14; i++)
         {
-            term *= (x/i);
+            term *= r / i;
             sum += term;
         }
 
-        //다시 2^k만큼 곱함(정확히는 축소한 횟수만큼)
-        for (int i = 0; i < k; i++) sum *= sum;
-        return sum;
+        return sum * Pow2(n);
+    }
+    /// <summary>2^n. 지수부 직접 조작 — 오차 0.</summary>
+    private static double Pow2(long n)
+    {
+        if (n > 1023) return double.PositiveInfinity;
+        if (n < -1074) return 0.0;
+        if (n >= -1022)
+            return System.BitConverter.Int64BitsToDouble((n + 1023L) << 52);
+        // 비정규화 영역: 두 단계로
+        return System.BitConverter.Int64BitsToDouble((n + 1074L) << 52) * 4.9406564584124654e-324;
     }
 
     /// <summary>
@@ -421,33 +430,25 @@ public static class MathUtility
     /// <returns></returns>
     public static double Sqrt(double x)
     {
-        if (x < 0) return double.NaN;//허수
-        if (x == 0) return 0;
+        if (double.IsNaN(x) || x < 0.0) return double.NaN;
+        if (x == 0.0) return 0.0;
+        if (double.IsPositiveInfinity(x)) return x;
 
-        // 범위 축소: x = m · 4^k,  m ∈ [1, 4)  →  √x = √m · 2^k
+        // 범위 축소: x = m · 4^k,  m ∈ [1, 4)
         int k = 0;
         double m = x;
-        while (m >= 4) { m *= 0.25; k++; }
-        while (m < 1) { m *= 4; k--; }
+        while (m >= 4.0) { m *= 0.25; k++; }
+        while (m < 1.0) { m *= 4.0; k--; }
 
-        int count = 0;
-        int maxIterations = 100;//무한루프 방지
-        double rootX = m;
-        double prev;
-        do
-        {
-            prev = rootX;
-            rootX = (rootX + (m / rootX)) * 0.5;
+        // 선형 초기 근사 후 Newton 5회 — |오차| < 1e-16 보장
+        double y = 0.5 + 0.5 * m;
+        y = 0.5 * (y + m / y);
+        y = 0.5 * (y + m / y);
+        y = 0.5 * (y + m / y);
+        y = 0.5 * (y + m / y);
+        y = 0.5 * (y + m / y);
 
-            count++;
-            if (count > maxIterations) break;//최대 반복수
-
-        } while (Abs(rootX - prev) > ConstUtility.Epcilon12*rootX);
-
-        //축소한만큼 다시 곱함
-        if (k >= 0) for (int i = 0; i < k; i++) rootX *= 2;
-        else for (int i = 0; i < -k; i++) rootX *= 0.5;
-        return rootX;
+        return y * Pow2(k);   // 오차 0
     }
     /// <summary>
     /// 세제곱근 계산
@@ -489,42 +490,42 @@ public static class MathUtility
     /// <returns></returns>
     public static double Log(double x)
     {
-        //범위 예외
-        if (x <= 0) return double.NaN;
+        if (double.IsNaN(x) || x < 0.0) return double.NaN;
+        if (x == 0.0) return double.NegativeInfinity;
+        if (double.IsPositiveInfinity(x)) return double.PositiveInfinity;
 
-        //1
-        if (x == 1) return 0;
+        // --- 지수부 분리: x = m * 2^e,  m ∈ [√2/2, √2) ---
+        long bits = System.BitConverter.DoubleToInt64Bits(x);
+        int e = (int)((bits >> 52) & 0x7FF) - 1023;
 
-        //지수,가수 분해
-        double mantissa = x;
-        double arqumenbt = 0;
-        while (mantissa >= 2)
+        if (e == -1023)   // 비정규화수: 정규화 후 재시도
         {
-            mantissa = mantissa / 2;
-            arqumenbt += 1;
-        }
-        while (mantissa < 1.0) { mantissa *= 2.0; arqumenbt-=1; }
-        // √2 조정: 가수를 [0.707, 1.414)로 더 좁힘
-        double halfCorrection = 0;
-        if (mantissa > ConstUtility.root2)   // √2 ≈ 1.41421356
-        {
-            mantissa /= ConstUtility.root2;
-            halfCorrection = 0.5;            // ln(√2) = ln2/2 만큼 나중에 더함
+            x *= 9007199254740992.0;   // 2^53
+            bits = System.BitConverter.DoubleToInt64Bits(x);
+            e = (int)((bits >> 52) & 0x7FF) - 1023 - 53;
         }
 
-        //계산
-        double x1 = mantissa - 1;
-        double x12 = x1 * x1;
-        double x14 = x12 * x12;
-        double x18 = x14 * x14;
+        // 가수부만 남겨 m ∈ [1, 2)
+        double m = System.BitConverter.Int64BitsToDouble(
+            (bits & 0x000FFFFFFFFFFFFFL) | 0x3FF0000000000000L);
 
-        double res1to4 = x1 - (x12 / 2) + (x12 * x1 / 3) - (x14/4);
-        double res5to8 = (x14*x1/5) - (x14*x12 / 6) + (x14 * x12*x1 / 7) - (x18 / 8);
-        double res9to12 = (x18 * x1 / 9) - (x18 * x12 / 10) + (x18 * x12 * x1 / 11) - (x18*x14 / 12);
-        double res13to16 = (x18*x14 * x1 / 13) - (x18*x14 * x12 / 14) + (x18*x14 * x12 * x1 / 15) - (x18*x18 / 16);
-        double talorResult = res1to4 + res5to8 + res9to12 + res13to16;
+        // m ∈ [√2/2, √2) 로 재조정 — |s| 최소화
+        if (m > 1.4142135623730951) { m *= 0.5; e++; }
 
-        return talorResult + (arqumenbt+halfCorrection)*ConstUtility.ln2;
+        // --- ln m : atanh 급수 ---
+        double s = (m - 1.0) / (m + 1.0);      // |s| <= 0.172
+        double s2 = s * s;
+
+        double sum = s;
+        double term = s;
+        for (int i = 3; i <= 21; i += 2)
+        {
+            term *= s2;
+            sum += term / i;
+        }
+        double lnM = 2.0 * sum;
+
+        return lnM + e * ConstUtility.LN2_HI + e * ConstUtility.LN2_LO;
     }
 
     /// <summary>
@@ -721,8 +722,8 @@ public static class MathUtility
     public static double ArkSin(double x)
     {
         //정의역 설정
-        if (x == 1) return ConstUtility.PI/2;
-        if (x == -1) return -ConstUtility.PI / 2;
+        if (x == 1) return ConstUtility.PI_2;
+        if (x == -1) return -ConstUtility.PI_2;
 
         if (Abs(x) > 1) return double.NaN;
 
@@ -740,7 +741,7 @@ public static class MathUtility
         //정의역 설정
         if (Abs(x) > 1) return double.NaN;
 
-        return ConstUtility.PI/2-ArkSin(x);
+        return ConstUtility.PI_2-ArkSin(x);
     }
     /// <summary>
     /// Tan^-1 함수
@@ -750,45 +751,36 @@ public static class MathUtility
     /// <returns></returns>
     public static double ArkTan(double x)
     {
-        //부호 분리 -> x>=0에서 계산
-        double sign = 1;
-        if (x < 0)
-        {
-            sign = -1;
-            x = -x;
-        }
+        if (double.IsNaN(x)) return double.NaN;
+        if (double.IsPositiveInfinity(x)) return ConstUtility.PI * 0.5;
+        if (double.IsNegativeInfinity(x)) return -ConstUtility.PI * 0.5;
 
-        //범위 축소
+        double sign = 1.0;
+        if (x < 0.0) { sign = -1.0; x = -x; }
+
         bool invert = false;
-        if (x > 1)
-        {
-            x = 1 / x;
-            invert = true;
-        }
+        if (x > 1.0) { x = 1.0 / x; invert = true; }
 
-        //2차 축소
         bool shift = false;
         if (x > ConstUtility.TanPi12)
         {
-            x = (x - ConstUtility.InvSqrt3) / (1 + x * ConstUtility.InvSqrt3);
+            x = (x - ConstUtility.InvSqrt3) / (1.0 + x * ConstUtility.InvSqrt3);
             shift = true;
         }
 
-        double arkTan = x;
+        // |x| <= tan(π/12) = 0.2679, x^27 까지면 1e-17 수준
+        double negX2 = -x * x;
         double term = x;
-        for (long n = 1; n < 99; n++)
+        double result = x;
+        for (int n = 1; n <= 13; n++)
         {
-            term *= (-1.0*x * x);
-            double add = term / (2 * n + 1);
-            arkTan += add;
-
-            //조기 종료
-            if (Abs(add) < ConstUtility.Epcilon12) break;
+            term *= negX2;
+            result += term / (2 * n + 1);
         }
 
-        if (shift) arkTan += ConstUtility.PI / 6;
-        if (invert) arkTan = ConstUtility.PI / 2 - arkTan;
-        return sign*arkTan;
+        if (shift) result += ConstUtility.PI_6;
+        if (invert) result = ConstUtility.PIO2_HI - result;
+        return sign * result;
     }
     /// <summary>
     /// Tan^-1 함수, 인자 2개
@@ -798,19 +790,40 @@ public static class MathUtility
     /// <returns></returns>
     public static double ArkTan2(double y, double x)
     {
-        //0나누기 방지
-        if (x == 0)
+        if (double.IsNaN(y) || double.IsNaN(x)) return double.NaN;
+
+        // 무한대 조합 — IEEE 754 규약
+        if (double.IsInfinity(x) || double.IsInfinity(y))
         {
-            if(y>0) return ConstUtility.PI/2;
-            if (y < 0) return -ConstUtility.PI / 2;
-            return 0;//둘다 0
+            if (double.IsInfinity(x) && double.IsInfinity(y))
+            {
+                double q = (x > 0) ? ConstUtility.PI_4 : 3.0 * ConstUtility.PI_4;
+                return (y > 0) ? q : -q;
+            }
+            if (double.IsInfinity(y)) return (y > 0) ? ConstUtility.PI_2 : -ConstUtility.PI_2;
+            return (x > 0) ? 0.0 : ((y >= 0) ? ConstUtility.PI : -ConstUtility.PI);
         }
 
-        double arkTan = ArkTan(y / x);//1,4사분면
+        if (x == 0.0)
+        {
+            if (y > 0.0) return ConstUtility.PI_2;
+            if (y < 0.0) return -ConstUtility.PI_2;
+            return double.IsNegative(x) ? ConstUtility.PI : 0.0;
+        }
+        // 오버/언더플로 방지 스케일링
+        double ax = Abs(x), ay = Abs(y);
+        double scale = (ax > ay) ? ax : ay;
+        if (scale > 1e150 || scale < 1e-150)
+        {
+            x /= scale;
+            y /= scale;
+        }
 
-        if (x > 0) return arkTan;//1,4
-        if (y >= 0) return arkTan + ConstUtility.PI;//2
-        return arkTan - ConstUtility.PI;//3
+        double a = ArkTan(y / x);
+
+        if (x > 0.0) return a;                          // 1, 4사분면
+        if (y >= 0.0) return a + ConstUtility.PI;       // 2사분면
+        return a - ConstUtility.PI;                     // 3사분면
     }
     /// <summary>
     /// 쌍곡선 함수 -Sinh
