@@ -321,8 +321,8 @@ public class WaterScript : MonoBehaviour
                 Vector3 p = ray.GetPoint(dist);
                 //로컬->격자 인덱스
                 Vector3 local = transform.InverseTransformPoint(p);
-                int ci = (int)MathUtility.RountToInt(local.x);
-                int cj = (int)MathUtility.RountToInt(local.z);
+                int ci = (int)MathUtility.RoundToInt(local.x);
+                int cj = (int)MathUtility.RoundToInt(local.z);
                 AddHeight(ci, cj, 0.5);
             }
         }

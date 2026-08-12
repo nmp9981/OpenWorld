@@ -168,7 +168,7 @@ public static class MathUtility
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
-    public static long RountToInt(double x)
+    public static long RoundToInt(double x)
     {
         // NaN, 무한대, long 범위를 벗어나는 매우 큰 수 처리
         if (double.IsNaN(x) || double.IsInfinity(x) || x >= long.MaxValue || x <= long.MinValue)
@@ -581,6 +581,7 @@ public static class MathUtility
 
         return x * 180/ConstUtility.PI;
     }
+   
 
     /// <summary>
     /// Sin 함수
@@ -589,21 +590,24 @@ public static class MathUtility
     /// <returns></returns>
     public static double Sin(double x)
     {
-        double twoPi = 2 * ConstUtility.PI;
-        x = x - twoPi * FloorToInt((x + ConstUtility.PI) / twoPi);
+        if (double.IsNaN(x) || double.IsInfinity(x)) return double.NaN;
 
-        double x2 = x * x;
-        double x4 = x2 * x2;
-        double x8 = x4 * x4;
-        double second = (x * x * x)/Fact(3);
-        double third = (x2 * x2 * x) / Fact(5);
-        double fourth = (x4 * x2 * x) / Fact(7);
-        double fifth = (x8 * x) / Fact(9);
-        double sixth = (x8 * x2*x) / Fact(11);
-        double seventh = (x8 * x4*x) / Fact(13);
-        double eightth = (x8 * x4 * x2*x) / Fact(15);
+        // π/2 단위로 접기 → |r| ≤ π/4
+        double k = RoundToInt(x * ConstUtility.TWO_OVER_PI);
+        double r = x - k * ConstUtility.PIO2_HI;
+        r -= k * ConstUtility.PIO2_MID;
+        r -= k * ConstUtility.PIO2_LO;
 
-        return x -second + third - fourth + fifth-sixth+seventh-eightth;
+        int q = (int)((long)k & 3L);
+        if (q < 0) q += 4;
+
+        switch (q)
+        {
+            case 0: return SinCore(r);
+            case 1: return CosCore(r);
+            case 2: return -SinCore(r);
+            default: return -CosCore(r);
+        }
     }
     /// <summary>
     /// Cos 함수
@@ -612,23 +616,66 @@ public static class MathUtility
     /// <returns></returns>
     public static double Cos(double x)
     {
-        double twoPi = 2 * ConstUtility.PI;
-        x = x - twoPi * FloorToInt((x + ConstUtility.PI) / twoPi);
+        if (double.IsNaN(x) || double.IsInfinity(x)) return double.NaN;
 
-        double x2 = x * x;
-        double x4 = x2 * x2;
-        double x8 = x4 * x4;
-        double second = x2 / Fact(2);
-        double third = x4 / Fact(4);
-        double fourth = (x2*x4) / Fact(6);
-        double fifth = x8 / Fact(8);
-        double sixth = (x8 * x2) / Fact(10);
-        double seventh = (x8* x4) / Fact(12);
-        double eightth = (x8 * x4 * x2) / Fact(14);
-        double nineth = (x8 * x8) / Fact(16);
+        double k = RoundToInt(x * ConstUtility.TWO_OVER_PI);
+        double r = x - k * ConstUtility.PIO2_HI;
+        r -= k * ConstUtility.PIO2_MID;
+        r -= k * ConstUtility.PIO2_LO;
 
-        return 1 - second + third - fourth + fifth-sixth+seventh-eightth+nineth;
+        int q = (int)((long)k & 3L);
+        if (q < 0) q += 4;
+
+        switch (q)
+        {
+            case 0: return CosCore(r);
+            case 1: return -SinCore(r);
+            case 2: return -CosCore(r);
+            default: return SinCore(r);
+        }
     }
+    /// <summary>
+    /// sin 급수 본체. |r| ≤ π/4 전제.
+    /// 호출 전에 반드시 range reduction을 거칠 것.
+    /// </summary>
+    public static double SinCore(double r)
+    {
+        double r2 = r * r;
+        double r4 = r2 * r2;
+        double r8 = r4 * r4;
+
+        double t3 = (r2 * r) * ConstUtility.INV_FACT3;    // r^3  / 3!
+        double t5 = (r4 * r) * ConstUtility.INV_FACT5;    // r^5  / 5!
+        double t7 = (r4 * r2 * r) * ConstUtility.INV_FACT7;    // r^7  / 7!
+        double t9 = (r8 * r) * ConstUtility.INV_FACT9;    // r^9  / 9!
+        double t11 = (r8 * r2 * r) * ConstUtility.INV_FACT11;   // r^11 / 11!
+        double t13 = (r8 * r4 * r) * ConstUtility.INV_FACT13;   // r^13 / 13!
+        double t15 = (r8 * r4 * r2 * r) * ConstUtility.INV_FACT15;// r^15 / 15!
+
+        return r - t3 + t5 - t7 + t9 - t11 + t13 - t15;
+    }
+    /// <summary>
+    /// cos 급수 본체. |r| ≤ π/4 전제.
+    /// </summary>
+    public static double CosCore(double r)
+    {
+        double r2 = r * r;
+        double r4 = r2 * r2;
+        double r8 = r4 * r4;
+
+        double t2 = r2 * ConstUtility.INV_FACT2;    // r^2  / 2!
+        double t4 = r4 * ConstUtility.INV_FACT4;    // r^4  / 4!
+        double t6 = (r4 * r2) * ConstUtility.INV_FACT6;    // r^6  / 6!
+        double t8 = r8 * ConstUtility.INV_FACT8;    // r^8  / 8!
+        double t10 = (r8 * r2) * ConstUtility.INV_FACT10;   // r^10 / 10!
+        double t12 = (r8 * r4) * ConstUtility.INV_FACT12;   // r^12 / 12!
+        double t14 = (r8 * r4 * r2) * ConstUtility.INV_FACT14;   // r^14 / 14!
+        double t16 = (r8 * r8) * ConstUtility.INV_FACT16;   // r^16 / 16!
+
+        return 1.0 - t2 + t4 - t6 + t8 - t10 + t12 - t14 + t16;
+    }
+
+
     /// <summary>
     /// Tan 함수
     /// </summary>
