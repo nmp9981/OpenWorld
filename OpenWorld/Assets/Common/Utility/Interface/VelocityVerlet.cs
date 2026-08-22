@@ -37,6 +37,8 @@ namespace MathD.Integration
 
             double half = dt * 0.5;
 
+            sys.Acceleration(t, pos, accel);   // a(x_{n+1})
+
             for (int i = 0; i < n; i++)
             {
                 vel[i] += accel[i] * half;   // kick
