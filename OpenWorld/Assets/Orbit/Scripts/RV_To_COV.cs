@@ -40,6 +40,31 @@ public class RV_To_COV : MonoBehaviour
     // 기준평면(적도면)의 법선 = 자전축 방향
     static readonly Vector3D ReferenceNormal = new Vector3D(0, 0, 1);
 
+    private void Start()
+    {
+        var original = new StateVector();
+        original.Position = new Vector3D(7000, 1000, 2000);
+        original.Velocity = new Vector3D(-1.5, 6.8, 2.1);
+
+        CentralBody central = CentralBody.Earth;
+        var el = ToElements(central, original);
+        var back = ToState(central, el, original);
+
+        double posErr = (back.Position - original.Position).Magnitude() / original.Position.Magnitude();
+        double velErr = (back.Velocity - original.Velocity).Magnitude() / original.Velocity.Magnitude();
+        Debug.Log(posErr + "    " + velErr);
+
+        Debug.Log($"p={el.p}, e={el.e}, i={el.i}, raan={el.raan}, argp={el.argp}, nu={el.nu}");
+
+        Debug.Log($"orig r={original.Position}, back r={back.Position}");
+    }
+
+    /// <summary>
+    /// 변환
+    /// </summary>
+    /// <param name="central"></param>
+    /// <param name="state"></param>
+    /// <returns></returns>
     public static OrbitalElements ToElements(CentralBody central, StateVector state)
     {
         // 공통량 한 번만
@@ -50,33 +75,47 @@ public class RV_To_COV : MonoBehaviour
 
         Vector3D h = Vector3D.Cross(r, v);
         double hMag = h.Magnitude();
+        Vector3D hHat = h / hMag;
+        
         Vector3D e = ((vSq - central.Mu / rMag) * r - rv * v) / central.Mu;
         Vector3D n = Vector3D.Cross(ReferenceNormal, h);
-        Vector3D m = Vector3D.Cross(h, n);
+        Vector3D nHat = n / n.Magnitude();
+        Vector3D mHat = Vector3D.Cross(hHat, nHat);
 
         OrbitalElements orbitalElements = new OrbitalElements();
-        orbitalElements.p = hMag / central.Mu;
+        orbitalElements.p = hMag*hMag / central.Mu;
         orbitalElements.e = e.Magnitude();
         orbitalElements.i = MathUtility.ArkTan2(MathUtility.Sqrt(h.x * h.x + h.y * h.y), h.z);
         orbitalElements.raan = MathUtility.ArkTan2(n.y, n.x);
-        orbitalElements.argp = MathUtility.ArkTan2(Vector3D.Dot(e,m), Vector3D.Dot(e, n));
+        orbitalElements.argp = MathUtility.ArkTan2(Vector3D.Dot(e,mHat), Vector3D.Dot(e, nHat));
         orbitalElements.nu = MathUtility.ArkTan2(hMag * rv / central.Mu, Vector3D.Dot(e, r));
 
         return orbitalElements;
     }
-
-    public void COEToRV(CentralBody central, StateVector state)
+    /// <summary>
+    /// 역변환
+    /// </summary>
+    /// <param name="central"></param>
+    /// <param name="elements"></param>
+    /// <returns></returns>
+    public static StateVector ToState(CentralBody central, OrbitalElements elements, StateVector sta)
     {
-        OrbitalElements elements = ToElements(central, state);
         double cosNu = MathUtility.Cos(elements.nu);
         double sinNu = MathUtility.Sin(elements.nu);
-        double eccentricity = elements.p/(1+elements.e*cosNu);
+        double rMag = elements.p/(1+elements.e*cosNu);
         double rootUP = MathUtility.Sqrt(central.Mu / elements.p);
 
-        Vector3D rPQW = new Vector3D(cosNu,sinNu,0)*eccentricity;
+        Vector3D rPQW = new Vector3D(cosNu,sinNu,0)* rMag;
         Vector3D vPQW = new Vector3D(-sinNu, elements.e+cosNu, 0) * rootUP;
 
+        //회전 행렬
+        Matrix3x3D R = Matrix3x3D.R3(elements.raan)*Matrix3x3D.R1(elements.i)*Matrix3x3D.R3(elements.argp);
 
+        //결과 반환
+        StateVector s = new StateVector();
+        s.Position = R * rPQW;
+        s.Velocity = R * vPQW;
+        return s;
     }
 
 

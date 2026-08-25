@@ -169,6 +169,20 @@ public struct Matrix3x3D
     // [ω]× → ω  (반대칭 가정)
     public Vector3D FromSkewSymmetric() => new Vector3D(m21, m02, m10);
 
+    //축 회전
+    public static Matrix3x3D R1(double theta) => new Matrix3x3D(
+        1, 0, 0,
+        0, MathUtility.Cos(theta), -MathUtility.Sin(theta),
+        0, MathUtility.Sin(theta), MathUtility.Cos(theta));
+    public static Matrix3x3D R2(double theta) => new Matrix3x3D(
+        MathUtility.Cos(theta), 0,-MathUtility.Sin(theta),
+        0, 1, 0,
+        MathUtility.Sin(theta), 0, MathUtility.Cos(theta));
+    public static Matrix3x3D R3(double theta) => new Matrix3x3D(
+        MathUtility.Cos(theta), -MathUtility.Sin(theta), 0,
+        MathUtility.Sin(theta), MathUtility.Cos(theta), 0,
+        0, 0, 1);
+
     //여인수 행렬
     public Matrix3x3D Adjugate() => new Matrix3x3D(
     m11 * m22 - m12 * m21, m02 * m21 - m01 * m22, m01 * m12 - m02 * m11,
