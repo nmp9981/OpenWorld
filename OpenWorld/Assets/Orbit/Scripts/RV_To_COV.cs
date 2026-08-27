@@ -1,11 +1,11 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public readonly struct CentralBody
 {
-    public readonly double Mu;          // km©ø/s©÷
-    public readonly double Radius;      // 2´Ü°è¿¡¼­ ÃøÁöÁÂÇ¥¿¡ ÇÊ¿ä
-    public readonly double J2;          // 3´Ü°è¿¡¼­ Ã¤¿ò
-    public readonly double RotationRate;// 2´Ü°è ECEF º¯È¯
+    public readonly double Mu;          // kmÂ³/sÂ²
+    public readonly double Radius;      // 2ë‹¨ê³„ì—ì„œ ì¸¡ì§€ì¢Œí‘œì— í•„ìš”
+    public readonly double J2;          // 3ë‹¨ê³„ì—ì„œ ì±„ì›€
+    public readonly double RotationRate;// 2ë‹¨ê³„ ECEF ë³€í™˜
 
     public CentralBody(double mu, double radius, double j2 = 0, double rotationRate = 0)
     {
@@ -31,43 +31,46 @@ public struct StateVector
 public struct OrbitalElements
 {
     public double p, e, i, raan, argp, nu;
+    public OrbitGeometry Geometry;
 }
 
 public enum OrbitGeometry { General, CircularInclined, EllipticalEquatorial, CircularEquatorial }
 
 public class RV_To_COV : MonoBehaviour
 {
-    // ±âÁØÆò¸é(Àûµµ¸é)ÀÇ ¹ı¼± = ÀÚÀüÃà ¹æÇâ
+    // ê¸°ì¤€í‰ë©´(ì ë„ë©´)ì˜ ë²•ì„  = ìì „ì¶• ë°©í–¥
     static readonly Vector3D ReferenceNormal = new Vector3D(0, 0, 1);
+    const double E_TOL = 1e-8;   // ì¸¡ì • ê·¼ê±°: Î”Ï‰ â‰ˆ 1e-16/e, 1e-6 rad ê¸°ì¤€
+    const double I_TOL = 1e-8;   // íŒë‹¨ ê·¼ê±°: ì‹¤ ìœ„ì„± iê°€ 1e-3 ìˆ˜ì¤€
 
     private void Start()
     {
         var original = new StateVector();
-        original.Position = new Vector3D(7000, 1000, 2000);
-        original.Velocity = new Vector3D(-1.5, 6.8, 2.1);
+        original.Position = new Vector3D(7000,0,0);
+        //original.Velocity = new Vector3D(0, -7.54605329010754185, 0);
+        original.Velocity = new Vector3D(0, 6.5350, 3.7730);
 
         CentralBody central = CentralBody.Earth;
         var el = ToElements(central, original);
-        var back = ToState(central, el, original);
+
+        Debug.Log($"Orbital Elements: { el.Geometry}, e: {el.e}, i: {el.i}, raan: {el.raan}, argp : {el.argp}, nu : {el.nu}, p : {el.p}");
+        var back = ToState(central, el);
 
         double posErr = (back.Position - original.Position).Magnitude() / original.Position.Magnitude();
         double velErr = (back.Velocity - original.Velocity).Magnitude() / original.Velocity.Magnitude();
-        Debug.Log(posErr + "    " + velErr);
 
-        Debug.Log($"p={el.p}, e={el.e}, i={el.i}, raan={el.raan}, argp={el.argp}, nu={el.nu}");
 
-        Debug.Log($"orig r={original.Position}, back r={back.Position}");
     }
 
     /// <summary>
-    /// º¯È¯
+    /// ë³€í™˜
     /// </summary>
     /// <param name="central"></param>
     /// <param name="state"></param>
     /// <returns></returns>
     public static OrbitalElements ToElements(CentralBody central, StateVector state)
     {
-        // °øÅë·® ÇÑ ¹ø¸¸
+        // ê³µí†µëŸ‰ í•œ ë²ˆë§Œ
         Vector3D r = state.Position, v = state.Velocity;
         double rMag = r.Magnitude();
         double vSq = v.SqrMagnitude();
@@ -81,24 +84,64 @@ public class RV_To_COV : MonoBehaviour
         Vector3D n = Vector3D.Cross(ReferenceNormal, h);
         Vector3D nHat = n / n.Magnitude();
         Vector3D mHat = Vector3D.Cross(hHat, nHat);
+        double nMag = n.Magnitude();
 
         OrbitalElements orbitalElements = new OrbitalElements();
-        orbitalElements.p = hMag*hMag / central.Mu;
+        bool circular = orbitalElements.e < E_TOL;// ì´ì‹¬ë¥ ì´ 0ì— ê°€ê¹Œìš´ê°€?
+        bool equatorial = nMag < I_TOL;// ìŠ¹êµì  ì§ê²½ì´ 0ì— ê°€ê¹Œìš´ê°€?
+
+        orbitalElements.p = hMag * hMag / central.Mu;
         orbitalElements.e = e.Magnitude();
         orbitalElements.i = MathUtility.ArkTan2(MathUtility.Sqrt(h.x * h.x + h.y * h.y), h.z);
         orbitalElements.raan = MathUtility.ArkTan2(n.y, n.x);
-        orbitalElements.argp = MathUtility.ArkTan2(Vector3D.Dot(e,mHat), Vector3D.Dot(e, nHat));
+        orbitalElements.argp = MathUtility.ArkTan2(Vector3D.Dot(e, mHat), Vector3D.Dot(e, nHat));
         orbitalElements.nu = MathUtility.ArkTan2(hMag * rv / central.Mu, Vector3D.Dot(e, r));
 
+        if (circular && equatorial)
+        {
+            orbitalElements.raan = 0.0;
+            orbitalElements.argp = 0.0;
+            orbitalElements.nu = MathUtility.ArkTan2(r.y, r.x);
+            if (h.z < 0) orbitalElements.nu = -orbitalElements.nu;
+            orbitalElements.Geometry = OrbitGeometry.CircularEquatorial;
+        }
+        else if (circular)
+        {
+            nHat = n / nMag;
+            mHat = Vector3D.Cross(hHat, nHat);
+
+            orbitalElements.raan =MathUtility.ArkTan2(n.y, n.x);
+            orbitalElements.argp = 0.0;
+            orbitalElements.nu = MathUtility.ArkTan2(Vector3D.Dot(r, mHat), Vector3D.Dot(r, nHat));
+            orbitalElements.Geometry = OrbitGeometry.CircularInclined;
+        }
+        else if (equatorial)
+        {
+            orbitalElements.raan = 0.0;
+            orbitalElements.argp = MathUtility.ArkTan2(e.y, e.x);
+            if (h.z < 0) orbitalElements.argp = -orbitalElements.argp;
+            orbitalElements.nu = MathUtility.ArkTan2(hMag * rv /central.Mu, Vector3D.Dot(e, r));
+            orbitalElements.Geometry = OrbitGeometry.EllipticalEquatorial;
+        }
+        else
+        {
+            nHat = n / nMag;
+            mHat = Vector3D.Cross(hHat, nHat);
+
+            orbitalElements.raan = MathUtility.ArkTan2(n.y, n.x);
+            orbitalElements.argp = MathUtility.ArkTan2(Vector3D.Dot(e, mHat), Vector3D.Dot(e, nHat));
+            orbitalElements.nu = MathUtility.ArkTan2(hMag * rv / central.Mu, Vector3D.Dot(e, r));
+            orbitalElements.Geometry = OrbitGeometry.General;
+        }
         return orbitalElements;
     }
     /// <summary>
-    /// ¿ªº¯È¯
+    /// ì—­ë³€í™˜
     /// </summary>
     /// <param name="central"></param>
     /// <param name="elements"></param>
     /// <returns></returns>
-    public static StateVector ToState(CentralBody central, OrbitalElements elements, StateVector sta)
+    public static StateVector ToState(CentralBody central, OrbitalElements elements)
     {
         double cosNu = MathUtility.Cos(elements.nu);
         double sinNu = MathUtility.Sin(elements.nu);
@@ -108,10 +151,10 @@ public class RV_To_COV : MonoBehaviour
         Vector3D rPQW = new Vector3D(cosNu,sinNu,0)* rMag;
         Vector3D vPQW = new Vector3D(-sinNu, elements.e+cosNu, 0) * rootUP;
 
-        //È¸Àü Çà·Ä
+        //íšŒì „ í–‰ë ¬
         Matrix3x3D R = Matrix3x3D.R3(elements.raan)*Matrix3x3D.R1(elements.i)*Matrix3x3D.R3(elements.argp);
 
-        //°á°ú ¹İÈ¯
+        //ê²°ê³¼ ë°˜í™˜
         StateVector s = new StateVector();
         s.Position = R * rPQW;
         s.Velocity = R * vPQW;
@@ -119,9 +162,9 @@ public class RV_To_COV : MonoBehaviour
     }
 
 
-    #region º¸Á¸·® °è»ê
+    #region ë³´ì¡´ëŸ‰ ê³„ì‚°
     /// <summary>
-    /// º¸Á¸·® H
+    /// ë³´ì¡´ëŸ‰ H
     /// </summary>
     /// <returns></returns>
     Vector3D SpecificAngularMomentum(StateVector state)
@@ -130,7 +173,7 @@ public class RV_To_COV : MonoBehaviour
     }
 
     /// <summary>
-    /// ¿¡³ÊÁö 
+    /// ì—ë„ˆì§€ 
     /// </summary>
     /// <param name="central"></param>
     /// <param name="state"></param>
@@ -143,7 +186,7 @@ public class RV_To_COV : MonoBehaviour
     }
 
     /// <summary>
-    ///±Ëµµ ÀÌ½É·ü °è»ê
+    ///ê¶¤ë„ ì´ì‹¬ë¥  ê³„ì‚°
     /// </summary>
     /// <returns></returns>
     Vector3D EccentricityVector(CentralBody central, StateVector state)
@@ -155,14 +198,14 @@ public class RV_To_COV : MonoBehaviour
         //CAB
         Vector3D CAB = Vector3D.Dot(state.Position, state.Velocity) * state.Velocity;
 
-        //ÀÌ½É·ü
+        //ì´ì‹¬ë¥ 
         Vector3D eccentricityVector = (BAC - CAB) / central.Mu;
         return eccentricityVector;
     }
     #endregion
 
     /// <summary>
-    /// °æ»ç°¢ °è»ê
+    /// ê²½ì‚¬ê° ê³„ì‚°
     /// </summary>
     /// <param name="h"></param>
     /// <returns></returns>
@@ -175,7 +218,7 @@ public class RV_To_COV : MonoBehaviour
     }
 
     /// <summary>
-    /// ±ÙÁ¡ÀÎ¼ö
+    /// ê·¼ì ì¸ìˆ˜
     /// </summary>
     /// <param name="state"></param>
     /// <returns></returns>
@@ -192,7 +235,7 @@ public class RV_To_COV : MonoBehaviour
         return MathUtility.ArkTan2(Vector3D.Dot(e,m), Vector3D.Dot(e,n));
     }
     /// <summary>
-    /// ½Â±³Á¡ Á÷°æ
+    /// ìŠ¹êµì  ì§ê²½
     /// </summary>
     /// <returns></returns>
     double LongitudeAscending(StateVector state)
@@ -204,7 +247,7 @@ public class RV_To_COV : MonoBehaviour
     }
 
     /// <summary>
-    /// Áø±İÁ¡ÀÌ°¢
+    /// ì§„ê¸ˆì ì´ê°
     /// </summary>
     /// <param name="central"></param>
     /// <param name="state"></param>

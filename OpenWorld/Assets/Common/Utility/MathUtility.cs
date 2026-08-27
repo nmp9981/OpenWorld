@@ -582,7 +582,19 @@ public static class MathUtility
 
         return x * 180/ConstUtility.PI;
     }
-   
+    /// <summary>
+    /// 각도차 구하기
+    /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <returns></returns>
+    public static double AngleDiff(double a, double b)
+    {
+        double d = a - b;
+        while (d > ConstUtility.PI) d -= ConstUtility.TWO_PI;
+        while (d < -ConstUtility.PI) d += ConstUtility.TWO_PI;
+        return MathUtility.Abs(d);
+    }
 
     /// <summary>
     /// Sin 함수
@@ -745,7 +757,6 @@ public static class MathUtility
     }
     /// <summary>
     /// Tan^-1 함수
-    /// x=1 경계에서 2.5e-3 오차 있음
     /// </summary>
     /// <param name="x"></param>
     /// <returns></returns>
@@ -779,7 +790,8 @@ public static class MathUtility
         }
 
         if (shift) result += ConstUtility.PI_6;
-        if (invert) result = ConstUtility.PIO2_HI - result;
+        if (invert) result = ConstUtility.PI_2 - result;
+       
         return sign * result;
     }
     /// <summary>

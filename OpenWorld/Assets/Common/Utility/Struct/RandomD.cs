@@ -108,4 +108,19 @@ public struct RandomD
         }
         return (uint)(m >> 32);
     }
+    /// <summary>
+    /// Vector3D 단위 벡터 랜덤 생성
+    /// </summary>
+    /// <returns></returns>
+    public Vector3D RandomUnit()
+    {
+        double z = NextDouble() * 2.0 - 1.0;              // [-1, 1] 균일
+        double theta = NextDouble() * ConstUtility.TWO_PI; // [0, 2π)
+        double rho = MathUtility.Sqrt(1.0 - z * z);
+
+        return new Vector3D(
+            rho * MathUtility.Cos(theta),
+            rho * MathUtility.Sin(theta),
+            z);
+    }
 }
