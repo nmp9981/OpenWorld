@@ -47,19 +47,85 @@ public class RV_To_COV : MonoBehaviour
     {
         var original = new StateVector();
         original.Position = new Vector3D(7000,0,0);
-        //original.Velocity = new Vector3D(0, -7.54605329010754185, 0);
-        original.Velocity = new Vector3D(0, 6.5350, 3.7730);
+        original.Velocity = new Vector3D(0, -7.54605329010754185, 0);
+        
+        double[] es = { 1.1e-8, 0.9e-8 };
 
         CentralBody central = CentralBody.Earth;
         var el = ToElements(central, original);
-
-        Debug.Log($"Orbital Elements: { el.Geometry}, e: {el.e}, i: {el.i}, raan: {el.raan}, argp : {el.argp}, nu : {el.nu}, p : {el.p}");
         var back = ToState(central, el);
 
         double posErr = (back.Position - original.Position).Magnitude() / original.Position.Magnitude();
         double velErr = (back.Velocity - original.Velocity).Magnitude() / original.Velocity.Magnitude();
 
+        // 4-a: raan = 0 인 경우 — argp 가 그대로 나와야 함
+        RoundTripFromElements(central, "4-a", 7000.0, 0.1, 0.0, 0.0, 1.2, 0.4);
 
+        // 4-b: raan ≠ 0 인 경우 — raan+argp 가 argp 자리로 합쳐져야 함
+        RoundTripFromElements(central, "4-b", 7000.0, 0.1, 0.0, 0.3, 0.9, 0.4);
+        //                                              ϖ = 0.3 + 0.9 = 1.2
+
+        // 4-c: 합이 2π 를 넘는 경우
+        RoundTripFromElements(central, "4-c", 7000.0, 0.1, 0.0, 2.5, 2.8, 0.4);
+        //
+
+        Debug.Log("=== e 경계 ===");
+        CompareBoundary(central, "e", 1.1e-8, 0.9e-8, isEcc: true);
+
+        Debug.Log("=== i 경계 ===");
+        CompareBoundary(central, "i", 1.1e-8, 0.9e-8, isEcc: false);
+    }
+    void RoundTripFromElements(CentralBody central, string name,
+                           double p, double e, double i,
+                           double raan, double argp, double nu)
+    {
+        OrbitalElements el0 = new OrbitalElements();
+        el0.p = p; el0.e = e; el0.i = i;
+        el0.raan = raan; el0.argp = argp; el0.nu = nu;
+
+        StateVector s = ToState(central, el0);
+        OrbitalElements el1 = ToElements(central, s);
+        StateVector back = ToState(central, el1);
+
+        double dPos = (back.Position - s.Position).Magnitude() / s.Position.Magnitude();
+        double dVel = (back.Velocity - s.Velocity).Magnitude() / s.Velocity.Magnitude();
+
+        Debug.Log($"[{name}] {el1.Geometry}  e={el1.e:F6} i={el1.i:E3} " +
+                  $"raan={el1.raan:F6} argp={el1.argp:F6} nu={el1.nu:F6}  " +
+                  $"dPos={dPos:E3} dVel={dVel:E3}");
+    }
+
+    void CompareBoundary(CentralBody central, string tag,
+                     double above, double below, bool isEcc)
+    {
+        StateVector s1 = MakeBoundaryState(central, above, isEcc);
+        StateVector s2 = MakeBoundaryState(central, below, isEcc);
+
+        OrbitalElements e1 = ToElements(central, s1);
+        OrbitalElements e2 = ToElements(central, s2);
+
+        StateVector b1 = ToState(central, e1);
+        StateVector b2 = ToState(central, e2);
+
+        double dPos1 = (b1.Position - s1.Position).Magnitude() / s1.Position.Magnitude();
+        double dPos2 = (b2.Position - s2.Position).Magnitude() / s2.Position.Magnitude();
+
+        // 두 궤도 자체의 차이 — 분기가 달라도 위치는 거의 같아야 함
+        double gap = (b1.Position - b2.Position).Magnitude() / b1.Position.Magnitude();
+
+        Debug.Log($"[{tag} 위] {e1.Geometry}  dPos={dPos1:E3}");
+        Debug.Log($"[{tag} 아래] {e2.Geometry}  dPos={dPos2:E3}");
+        Debug.Log($"[{tag} 점프] gap={gap:E3}");
+    }
+
+    StateVector MakeBoundaryState(CentralBody central, double val, bool isEcc)
+    {
+        OrbitalElements el = new OrbitalElements();
+        el.p = 7000.0;
+        el.e = isEcc ? val : 0.1;
+        el.i = isEcc ? 0.5 : val;
+        el.raan = 0.8; el.argp = 1.2; el.nu = 0.4;
+        return ToState(central, el);
     }
 
     /// <summary>
@@ -82,20 +148,21 @@ public class RV_To_COV : MonoBehaviour
         
         Vector3D e = ((vSq - central.Mu / rMag) * r - rv * v) / central.Mu;
         Vector3D n = Vector3D.Cross(ReferenceNormal, h);
-        Vector3D nHat = n / n.Magnitude();
-        Vector3D mHat = Vector3D.Cross(hHat, nHat);
         double nMag = n.Magnitude();
+        double eMag = e.Magnitude();
+        double sinI = nMag / hMag;
+
+        bool circular = eMag < E_TOL;// 이심률이 0에 가까운가?
+        bool equatorial = sinI < I_TOL;// 승교점 직경이 0에 가까운가?
 
         OrbitalElements orbitalElements = new OrbitalElements();
-        bool circular = orbitalElements.e < E_TOL;// 이심률이 0에 가까운가?
-        bool equatorial = nMag < I_TOL;// 승교점 직경이 0에 가까운가?
 
         orbitalElements.p = hMag * hMag / central.Mu;
         orbitalElements.e = e.Magnitude();
         orbitalElements.i = MathUtility.ArkTan2(MathUtility.Sqrt(h.x * h.x + h.y * h.y), h.z);
-        orbitalElements.raan = MathUtility.ArkTan2(n.y, n.x);
-        orbitalElements.argp = MathUtility.ArkTan2(Vector3D.Dot(e, mHat), Vector3D.Dot(e, nHat));
-        orbitalElements.nu = MathUtility.ArkTan2(hMag * rv / central.Mu, Vector3D.Dot(e, r));
+
+        Vector3D nHat = n / n.Magnitude();
+        Vector3D mHat = Vector3D.Cross(hHat, nHat);
 
         if (circular && equatorial)
         {
