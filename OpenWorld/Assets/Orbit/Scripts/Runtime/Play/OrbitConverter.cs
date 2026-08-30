@@ -35,11 +35,8 @@
         OrbitalElements orbitalElements = new OrbitalElements();
 
         orbitalElements.p = hMag * hMag / central.Mu;
-        orbitalElements.e = e.Magnitude();
-        orbitalElements.i = MathUtility.ArkTan2(MathUtility.Sqrt(h.x * h.x + h.y * h.y), h.z);
-
-        Vector3D nHat = n / n.Magnitude();
-        Vector3D mHat = Vector3D.Cross(hHat, nHat);
+        orbitalElements.e = eMag;
+        orbitalElements.i = MathUtility.ArkTan2(nMag, h.z);
 
         if (circular && equatorial)
         {
@@ -51,8 +48,8 @@
         }
         else if (circular)
         {
-            nHat = n / nMag;
-            mHat = Vector3D.Cross(hHat, nHat);
+            Vector3D nHat = n / nMag;
+            Vector3D mHat = Vector3D.Cross(hHat, nHat);
 
             orbitalElements.raan = MathUtility.ArkTan2(n.y, n.x);
             orbitalElements.argp = 0.0;
@@ -69,8 +66,8 @@
         }
         else
         {
-            nHat = n / nMag;
-            mHat = Vector3D.Cross(hHat, nHat);
+            Vector3D nHat = n / nMag;
+            Vector3D mHat = Vector3D.Cross(hHat, nHat);
 
             orbitalElements.raan = MathUtility.ArkTan2(n.y, n.x);
             orbitalElements.argp = MathUtility.ArkTan2(Vector3D.Dot(e, mHat), Vector3D.Dot(e, nHat));

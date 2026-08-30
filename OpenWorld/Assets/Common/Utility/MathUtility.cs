@@ -999,4 +999,12 @@ public static class MathUtility
         return result;
     }
     #endregion
+
+    #region 뉴턴랩슨 테스트
+    public static double WrapToPi(double x)
+    {
+        double n = Round(x / ConstUtility.TWO_PI, 0);   // half-to-even
+        return x - n * ConstUtility.TWO_PI;
+    }
+    #endregion
 }

@@ -5,42 +5,57 @@ using System;
 /// </summary>
 public static class KeplerEquation
 {
-    public static double SolveKeplerElliptic(
-    double meanAnomaly, double e, double tol = 1e-12, int maxIter = 50)
+    public const int DefaultMaxIter = 50;
+    public const double DefaultTol = 1e-12;
+
+    /// <summary>수렴 시 true. 실패해도 E에는 마지막 근사값이 들어감.</summary>
+    public static bool TrySolveElliptic(
+        double meanAnomaly, double e, out double E, out int iterations,
+        double tol = DefaultTol, int maxIter = DefaultMaxIter)
     {
+        iterations = 0;
+        E = 0.0;
+
         if (e < 0.0 || e >= 1.0)
             throw new ArgumentOutOfRangeException(nameof(e), "타원 궤도만 지원 (0 <= e < 1)");
 
-        double m = WrapToPi(meanAnomaly);
-        if (e == 0.0) return m;                 // 원궤도: E = M
+        double m = MathUtility.WrapToPi(meanAnomaly);
+        if (e == 0.0) { E = m; return true; }      // 원궤도
 
         double sign = m < 0.0 ? -1.0 : 1.0;
-        m = MathUtility.Abs(m);                        // m ∈ [0, π]
+        m = MathUtility.Abs(m);                    // m ∈ [0, π]
 
-        // 초기값: 저이심률은 고정점 1회, 고이심률은 볼록성 보장점
-        double E = (e < 0.8) ? m + e * MathUtility.Sin(m) : ConstUtility.PI;
+        // 초기값: 저이심률은 고정점 1회, 고이심률은 볼록성 보장점(E=π)
+        double x = (e < 0.8) ? m + e * MathUtility.Sin(m) : ConstUtility.PI;
 
         for (int i = 0; i < maxIter; i++)
         {
-            double f = E - e * MathUtility.Sin(E) - m;
-            double fp = 1.0 - e * MathUtility.Cos(E);
+            iterations = i + 1;
 
-            double dE = f / fp;
-            // 안전장치: 한 스텝이 반주기를 넘지 못하게
-            if (dE > 1.0) dE = 1.0;
-            if (dE < -1.0) dE = -1.0;
+            double f = x - e * MathUtility.Sin(x) - m;
+            double fp = 1.0 - e * MathUtility.Cos(x);
 
-            E -= dE;
-            if (MathUtility.Abs(dE) < tol) return sign * E;
+            double dx = f / fp;
+            if (dx > 1.0) dx = 1.0;              // 볼록성을 깨지 않는 범위로 제한
+            if (dx < -1.0) dx = -1.0;
+
+            x -= dx;
+
+            if (MathUtility.Abs(dx) < tol) { E = sign * x; return true; }
         }
 
-        throw new InvalidOperationException(
-            $"케플러 방정식 미수렴: e={e}, M={meanAnomaly}");
+        E = sign * x;
+        return false;
     }
 
-    private static double WrapToPi(double x)
+    /// <summary>수렴 실패 시 예외를 던지는 버전.</summary>
+    public static double SolveElliptic(
+        double meanAnomaly, double e,
+        double tol = DefaultTol, int maxIter = DefaultMaxIter)
     {
-        // Math.IEEERemainder(x, 2π)가 정확히 [-π, π]를 줍니다
-        return Math.IEEERemainder(x, 2.0 * Math.PI);
+        if (!TrySolveElliptic(meanAnomaly, e, out double E, out int iters, tol, maxIter))
+            throw new InvalidOperationException(
+                $"케플러 방정식 미수렴: e={e}, M={meanAnomaly}, iters={iters}");
+        return E;
     }
 }
