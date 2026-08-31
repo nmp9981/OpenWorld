@@ -175,9 +175,9 @@ public struct Matrix3x3D
         0, MathUtility.Cos(theta), -MathUtility.Sin(theta),
         0, MathUtility.Sin(theta), MathUtility.Cos(theta));
     public static Matrix3x3D R2(double theta) => new Matrix3x3D(
-        MathUtility.Cos(theta), 0,-MathUtility.Sin(theta),
+        MathUtility.Cos(theta), 0,MathUtility.Sin(theta),
         0, 1, 0,
-        MathUtility.Sin(theta), 0, MathUtility.Cos(theta));
+        -MathUtility.Sin(theta), 0, MathUtility.Cos(theta));
     public static Matrix3x3D R3(double theta) => new Matrix3x3D(
         MathUtility.Cos(theta), -MathUtility.Sin(theta), 0,
         MathUtility.Sin(theta), MathUtility.Cos(theta), 0,
