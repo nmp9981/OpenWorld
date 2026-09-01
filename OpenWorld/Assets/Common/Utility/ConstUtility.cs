@@ -29,6 +29,7 @@ public static class ConstUtility
     //°ÅµìÁ¦°ö »ó¼ö
     public const double Epcilon12 = 1e-12;
     public const double Epcilon16 = 1e-16;
+    public const double DBL_EPSILON = 2.220446049250313e-16;
     public const double PowM11 = 1e-11;
     public const double e = 2.71828183;
 

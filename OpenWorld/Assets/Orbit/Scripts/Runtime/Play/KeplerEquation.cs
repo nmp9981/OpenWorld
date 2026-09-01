@@ -41,7 +41,16 @@ public static class KeplerEquation
 
             x -= dx;
 
+            // (1) 통상 수렴
             if (MathUtility.Abs(dx) < tol) { E = sign * x; return true; }
+
+            // (2) 잔차가 자체 반올림 노이즈 바닥에 도달 → 더 개선 불가
+            //     f = x - e·sinx 는 상쇄로 ~ε·x 의 절대오차를 남기므로,
+            //     1-e < 2.4e-8 에서는 (1)의 고정 tol 이 원리적으로 도달 불가능.
+            if (MathUtility.Abs(f) <= 4.0 * ConstUtility.DBL_EPSILON * (x + m))
+            {
+                E = sign * x; return true;
+            }
         }
 
         E = sign * x;
