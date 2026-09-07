@@ -5,7 +5,7 @@ using System;
 /// </summary>
 public static class KeplerEquation
 {
-    public const int DefaultMaxIter = 50;
+    public const int DefaultMaxIter = 60;
     public const double DefaultTol = 1e-12;
 
     /// <summary>수렴 시 true. 실패해도 E에는 마지막 근사값이 들어감.</summary>
