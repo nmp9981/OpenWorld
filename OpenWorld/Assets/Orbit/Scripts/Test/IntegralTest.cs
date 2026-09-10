@@ -34,7 +34,7 @@ public class IntegralTest : MonoBehaviour
     {
         double e = eccentricity;
         pos = new Vector3D(1.0 - e, 0, 0);
-        vel = new Vector3D(0, Math.Sqrt((1.0 + e) / (1.0 - e)), 0);
+        vel = new Vector3D(0, MathUtility.Sqrt((1.0 + e) / (1.0 - e)), 0);
         E0 = Energy(pos, vel);
         simT = 0;
         energyErrorMax = 0;
@@ -53,7 +53,7 @@ public class IntegralTest : MonoBehaviour
             }
             simT += dt;
         }
-
+     
         elapsedOrbits = simT / (2.0 * ConstUtility.PI);
         energyErrorNow = (Energy(pos, vel) - E0) / MathUtility.Abs(E0);
         energyErrorMax = MathUtility.Max(energyErrorMax, MathUtility.Abs(energyErrorNow));
