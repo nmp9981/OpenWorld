@@ -9,7 +9,7 @@ public class MathUtilityTests : MonoBehaviour
     [Header("설정")]
     public Method method = Method.VelocityVerlet;
     [Range(0f, 0.9f)] public float eccentricity = 0.3f;
-    public double dt = 2.0 * ConstUtility.PI / 2000.0;   // 주기당 2000스텝
+    public double dt = 2.0 * ConstUtility.PI / 200.0;   // 주기당 100스텝
     public int stepsPerFixedUpdate = 10;
     public float renderScale = 5f;
 
@@ -27,7 +27,7 @@ public class MathUtilityTests : MonoBehaviour
     //파일 작성용
     CentralBody body;
     StreamWriter writer;
-    
+    string filePath = "D:\\Data\\Obit";
 
     // ── 시스템 정의: μ=1 케플러. 유틸리티에 델리게이트로 전달 ──
     static Vector3D Gravity(Vector3D r)
@@ -61,7 +61,7 @@ public class MathUtilityTests : MonoBehaviour
         stepCount = 0;
 
         // 헤더: orbit, 그다음 방법별 posErr, velErr, energyErr, a, e
-        string path = Path.Combine(Application.persistentDataPath, $"{method}_e{eccentricity}.csv");
+        string path = Path.Combine(filePath, $"{method}_e{eccentricity}.csv");
         writer = new StreamWriter(path);
         writer.WriteLine("orbit,posErr,velErr,energyErr,a,e");
         Debug.Log(path);
@@ -83,14 +83,14 @@ public class MathUtilityTests : MonoBehaviour
             stepCount++;
 
             // 주기 경계에 정확히 도달한 스텝에서만 기록 (stepsPerOrbit의 배수)
-            if (stepCount % 2000 == 0)          // 주기당 2000스텝 기준. dt 바꾸면 같이 수정
+            if (stepCount % 200 == 0)          // 주기당 2000스텝 기준. dt 바꾸면 같이 수정
             {
                 double t = stepCount * dt;
                 var ex = orbit.StateAt(t);
                 var el = OrbitConverter.ToElements(body, new StateVector(pos, vel));
                 double a = el.p / (1.0 - el.e * el.e);
 
-                writer.WriteLine($"{stepCount / 2000},{(pos - ex.Position).Magnitude()},{(vel - ex.Velocity).Magnitude()}," +
+                writer.WriteLine($"{stepCount / 200},{(pos - ex.Position).Magnitude()},{(vel - ex.Velocity).Magnitude()}," +
                                  $"{(Energy(pos, vel) - E0) / MathUtility.Abs(E0)},{a},{el.e}");
                 writer.Flush();
             }
