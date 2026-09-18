@@ -8,10 +8,11 @@ public class MathUtilityTests : MonoBehaviour
 
     [Header("설정")]
     public Method method = Method.VelocityVerlet;
-    [Range(0f, 0.9f)] public float eccentricity = 0.3f;
-    public double dt = 2.0 * ConstUtility.PI / 200.0;   // 주기당 100스텝
+    [Range(0f, 0.9f)] public float eccentricity = 0.9f;
+    public double dt = 2.0 * ConstUtility.PI / 2000.0;   // 주기당 100스텝
     public int stepsPerFixedUpdate = 10;
     public float renderScale = 5f;
+    public int stepsPerOrbit = 2000;
 
     [Header("관측값 (읽기 전용)")]
     public double elapsedOrbits;
@@ -44,7 +45,7 @@ public class MathUtilityTests : MonoBehaviour
         double e = eccentricity;
         
         body = new CentralBody (1.0,1.0);     // 실제 생성 방식에 맞게
-        var oe = new OrbitalElements { p = 1.0 - e * e, e = e, i = 0, raan = 0, argp = 0, nu = 0 };
+        var oe = new OrbitalElements { p = 1.0 - e * e, e = e, i = 0, raan = 0, argp = 0, nu = ConstUtility.PI };
         orbit = new Orbit(body, oe, epoch: 0.0);
 
         // 적분기 초기값을 손계산이 아니라 같은 Orbit에서 뽑음
@@ -60,10 +61,10 @@ public class MathUtilityTests : MonoBehaviour
         posErrorMax = 0;
         stepCount = 0;
 
-        // 헤더: orbit, 그다음 방법별 posErr, velErr, energyErr, a, e
+        // 헤더: orbit, 그다음 방법별 posErr, velErr, energyErr, a, e, argp
         string path = Path.Combine(filePath, $"{method}_e{eccentricity}.csv");
         writer = new StreamWriter(path);
-        writer.WriteLine("orbit,posErr,velErr,energyErr,a,e");
+        writer.WriteLine("orbit,posErr,velErr,energyErr,a,e,argp");
         Debug.Log(path);
     }
 
@@ -82,20 +83,36 @@ public class MathUtilityTests : MonoBehaviour
             }
             stepCount++;
 
-            // 주기 경계에 정확히 도달한 스텝에서만 기록 (stepsPerOrbit의 배수)
-            if (stepCount % 200 == 0)          // 주기당 2000스텝 기준. dt 바꾸면 같이 수정
-            {
-                double t = stepCount * dt;
-                var ex = orbit.StateAt(t);
-                var el = OrbitConverter.ToElements(body, new StateVector(pos, vel));
-                double a = el.p / (1.0 - el.e * el.e);
+            double t = stepCount * dt;
+            var ex = orbit.StateAt(t);
+            var el = OrbitConverter.ToElements(body, new StateVector(pos, vel));
+            double a = el.p / (1.0 - el.e * el.e);
 
-                writer.WriteLine($"{stepCount / 200},{(pos - ex.Position).Magnitude()},{(vel - ex.Velocity).Magnitude()}," +
-                                 $"{(Energy(pos, vel) - E0) / MathUtility.Abs(E0)},{a},{el.e}");
-                writer.Flush();
+            writer.WriteLine($"{stepCount / stepsPerOrbit},{(pos - ex.Position).Magnitude()},{(vel - ex.Velocity).Magnitude()}," +
+                             $"{(Energy(pos, vel) - E0) / MathUtility.Abs(E0)},{a},{el.e},{el.argp}");
+
+            //한주기 끝나면 멈춤
+            if (stepCount >= stepsPerOrbit)
+            {
+                writer.Close();
+                enabled = false;
+                return;
             }
+
+            //// 주기 경계에 정확히 도달한 스텝에서만 기록 (stepsPerOrbit의 배수)
+            //if (stepCount % stepsPerOrbit == 0)          // 주기당 2000스텝 기준. dt 바꾸면 같이 수정
+            //{
+            //    double t = stepCount * dt;
+            //    var ex = orbit.StateAt(t);
+            //    var el = OrbitConverter.ToElements(body, new StateVector(pos, vel));
+            //    double a = el.p / (1.0 - el.e * el.e);
+
+            //    writer.WriteLine($"{stepCount / 20000},{(pos - ex.Position).Magnitude()},{(vel - ex.Velocity).Magnitude()}," +
+            //                     $"{(Energy(pos, vel) - E0) / MathUtility.Abs(E0)},{a},{el.e},{el.argp}");
+            //    writer.Flush();
+            //}
         }
-        
+
         double simT = stepCount * dt;
         var exact = orbit.StateAt(simT);
 
