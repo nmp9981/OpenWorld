@@ -65,7 +65,6 @@ public class MathUtilityTests : MonoBehaviour
         string path = Path.Combine(filePath, $"{method}_e{eccentricity}.csv");
         writer = new StreamWriter(path);
         writer.WriteLine("orbit,posErr,velErr,energyErr,a,e,argp");
-        Debug.Log(path);
     }
 
     void FixedUpdate()

@@ -115,12 +115,13 @@ public static class IntegratorUtility
         double sc6 = aTol + rTol * MathUtility.Max(MathUtility.Abs(v.z), MathUtility.Abs(vNew.z));
         double errNorm = MathUtility.Sqrt((errR.x * errR.x) / (sc1 * sc1) + (errR.y * errR.y) / (sc2 * sc2) + (errR.z * errR.z) / (sc3 * sc3)
                                     + (errV.x * errV.x) / (sc4 * sc4) + (errV.y * errV.y) / (sc5 * sc5) + (errV.z * errV.z) / (sc6 * sc6)) / MathUtility.Sqrt(6.0);
+
         accepted = errNorm <= 1.0;
         if (accepted) { r = rNew;v = vNew; }
 
         //h갱신
         h = h * MathUtility.Min(5, MathUtility.Max(0.2, 0.9 * MathUtility.Pow(MathUtility.Max(errNorm, 1e-16), -0.2)));
-
+        
        //바닥한계
        if(h<ConstUtility.Epcilon12) throw new InvalidOperationException("RK45: 스텝 크기가 바닥에 닿음");
     }

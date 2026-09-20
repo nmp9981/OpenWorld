@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using UnityEngine;
 
 public class IntegralTest : MonoBehaviour
@@ -7,7 +8,7 @@ public class IntegralTest : MonoBehaviour
 
     [Header("설정")]
     public Method method = Method.VelocityVerlet;
-    [Range(0f, 0.9f)] public float eccentricity = 0.3f;
+    [Range(0f, 0.9f)] private float eccentricity = 0.9f;
     public double dt = 2.0 * Math.PI / 2000.0;   // 주기당 2000스텝
     public int stepsPerFixedUpdate = 10;
     public float renderScale = 5f;
@@ -21,7 +22,7 @@ public class IntegralTest : MonoBehaviour
     double E0, simT;
 
     [Header("RK45 적분기 테스트")]
-    public double rTol = 1e-6, aTol = 1e-6;
+    private double rTol = 1e-8, aTol = 1e-10;
     double T => 2.0 * ConstUtility.PI;
     CentralBody body;
     Orbit orbit;
@@ -32,6 +33,10 @@ public class IntegralTest : MonoBehaviour
     long funcEvals;                     // = (acceptedSteps + rejectedSteps) * 7
     double posErr;                      // = (pos - orbit.StateAt(T).r).Magnitude()
     double energyErr;                   // = (Energy(pos, vel) - E0) / |E0|
+
+    //csv
+    StreamWriter writer;
+    string filePath = "D:\\Data\\Obit";
 
     // ── 시스템 정의: μ=1 케플러. 유틸리티에 델리게이트로 전달 ──
     static Vector3D Gravity(Vector3D r)
@@ -51,18 +56,29 @@ public class IntegralTest : MonoBehaviour
         E0 = Energy(pos, vel);
         simT = 0;
         energyErrorMax = 0;
-
-
         body = new CentralBody(1.0, 1.0);
-        var oe = new OrbitalElements { p = 1.0 - e * e, e = e, i = 0, raan = 0, argp = 0, nu = 0 };
-        orbit = new Orbit(body, oe, epoch: 0.0);
 
-        var s0 = orbit.StateAt(0.0);
-        pos = s0.Position;
-        vel = s0.Velocity;
-        E0 = Energy(pos, vel);
+        writer = new StreamWriter(Path.Combine(filePath, $"RK45_e{e}.csv"));   // 한 번만
+        writer.WriteLine("rTol,t,h,energyErr,posErr");
 
-        RK45Test();
+
+        double[] rTolList = { 1e-6, 1e-8, 1e-10, 1e-12 };
+        foreach (var rt in rTolList)
+        {
+            rTol = rt;
+            aTol = rt / 100;
+            var oe = new OrbitalElements { p = 1.0 - e * e, e = e, i = 0, raan = 0, argp = 0, nu = ConstUtility.PI };
+            orbit = new Orbit(body, oe, epoch: 0.0);
+
+            var s0 = orbit.StateAt(0.0);
+            pos = s0.Position;
+            vel = s0.Velocity;
+            E0 = Energy(pos, vel);
+            RK45Test();
+        }
+
+        writer.Close(); writer = null;
+        enabled = false;
     }
 
     void FixedUpdate()
@@ -89,21 +105,32 @@ public class IntegralTest : MonoBehaviour
     void RK45Test()
     {
         double t = 0, tEnd = 10 * T, h = T / 1000;
+        double hMin = double.MaxValue, hMax = 0;
+
         while (t < tEnd)
         {
             if (t + h > tEnd) h = tEnd - t;
             double hUsed = h;
             IntegratorUtility.RK45(ref pos, ref vel, ref h, Gravity, rTol, aTol, out bool ok);
-            if (ok) { t += hUsed; acceptedSteps++; }
+           
+            // 루프 안, 채택 시:
+            if (ok)
+            {
+                t += hUsed;
+                acceptedSteps++;
+                hMin = MathUtility.Min(hMin, hUsed);
+                hMax = MathUtility.Max(hMax, hUsed);
+                writer.WriteLine($"{rTol},{t},{hUsed},{(Energy(pos, vel) - E0) / MathUtility.Abs(E0)},{(pos - orbit.StateAt(t).Position).Magnitude()}");
+            }
             else { rejectedSteps++; }
         }
-      
+
         rejectRate = (double)rejectedSteps / (acceptedSteps + rejectedSteps);
         funcEvals = (acceptedSteps + rejectedSteps) * 7;
 
         posErr = (pos - orbit.StateAt(T).Position).Magnitude();
         energyErr = (Energy(pos, vel) - E0) / MathUtility.Abs(E0);
-
-        Debug.Log(posErr+" "+energyErr+" "+acceptedSteps+" " +rejectedSteps+" "+ rejectRate+" "+ funcEvals);
     }
+    void OnDestroy() => writer?.Close();
+
 }
