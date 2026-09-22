@@ -240,6 +240,24 @@ public static class MathUtility
         }
         return intX;
     }
+    /// <summary>
+    /// 내림 함수
+    /// </summary>
+    /// <param name="x"></param>
+    /// <returns></returns>
+    public static double Floor(double x)
+    {
+        // NaN, 무한대, long 범위를 벗어나는 매우 큰 수 처리
+        if (double.IsNaN(x) || double.IsInfinity(x) || x >= long.MaxValue || x <= long.MinValue)
+            return (long)x;
+
+        long intX = (long)x;
+        if (x < 0 && intX != x)//음수 보정
+        {
+            intX -= 1;
+        }
+        return (double)intX;
+    }
 
     /// <summary>
     /// 올림 함수
