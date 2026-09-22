@@ -219,4 +219,124 @@ public static class IntegratorUtility
             vel[i] += (k1v[i] + k2v[i] * 2.0 + k3v[i] * 2.0 + k4v[i]) * w;
         }
     }
+    /// <summary>
+    /// 고전 RK45 — 다물체 버전. 7단계 Runge-Kutta-Fehlberg (RKF45) Butcher tableau.
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <param name="vel"></param>
+    /// <param name="h"></param>
+    /// <param name="a"></param>
+    /// <param name="rTol"></param>
+    /// <param name="aTol"></param>
+    /// <param name="tmpPos"></param>
+    /// <param name="k1v"></param>
+    /// <param name="k2v"></param>
+    /// <param name="k3v"></param>
+    /// <param name="k4v"></param>
+    /// <param name="k5v"></param>
+    /// <param name="k6v"></param>
+    /// <param name="k7v"></param>
+    /// <param name="k1r"></param>
+    /// <param name="k2r"></param>
+    /// <param name="k3r"></param>
+    /// <param name="k4r"></param>
+    /// <param name="k5r"></param>
+    /// <param name="k6r"></param>
+    /// <param name="k7r"></param>
+    /// <param name="accepted"></param>
+    /// <exception cref="InvalidOperationException"></exception>
+    public static void RK45(Vector3D[] pos, Vector3D[] vel,ref double h, AccelFuncN a, double rTol, double aTol, Vector3D[] tmpPos,
+        Vector3D[] k1v, Vector3D[] k2v, Vector3D[] k3v, Vector3D[] k4v, Vector3D[] k5v, Vector3D[] k6v, Vector3D[] k7v,
+                       Vector3D[] k1r, Vector3D[] k2r, Vector3D[] k3r, Vector3D[] k4r,Vector3D[] k5r, Vector3D[] k6r, Vector3D[] k7r,
+        out bool accepted)
+    {
+        int n = pos.Length;
+
+        // k1: 현재 상태.  k1r = vel,  k1v = a(pos)
+        for (int i = 0; i < n; i++) k1r[i] = vel[i];
+        a(pos, k1v);
+
+        // k2: 전 물체를 k1 방향으로 반 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + (k1r[i] * a21) * h;
+            k2r[i] = vel[i] + (k1v[i] * a21) * h;
+        }
+        a(tmpPos, k2v);
+
+        // k3: 전 물체를 k2 방향으로 반 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + (k1r[i] * a3[0] + k2r[i] * a3[1]) * h;
+            k3r[i] = vel[i] + (k1v[i] * a3[0] + k2v[i] * a3[1]) * h;
+        }
+        a(tmpPos, k3v);
+
+        // k4: 전 물체를 k3 방향으로 한 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + (k1r[i] * a4[0] + k2r[i] * a4[1] + k3r[i] * a4[2]) * h;
+            k4r[i] = vel[i] + (k1v[i] * a4[0] + k2v[i] * a4[1] + k3v[i] * a4[2]) * h;
+        }
+        a(tmpPos, k4v);
+
+        // k5: 전 물체를 k4 방향으로 한 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + (k1r[i] * a5[0] + k2r[i] * a5[1] + k3r[i] * a5[2] + k4r[i] * a5[3]) * h;
+            k5r[i] = vel[i] + (k1v[i] * a5[0] + k2v[i] * a5[1] + k3v[i] * a5[2] + k4v[i] * a5[3]) * h;
+        }
+        a(tmpPos, k5v);
+
+        // k6: 전 물체를 k5 방향으로 한 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + (k1r[i] * a6[0] + k2r[i] * a6[1] + k3r[i] * a6[2] + k4r[i] * a6[3] + k5r[i] * a6[4]) * h;
+            k6r[i] = vel[i] + (k1v[i] * a6[0] + k2v[i] * a6[1] + k3v[i] * a6[2] + k4v[i] * a6[3] + k5v[i] * a6[4]) * h;
+        }
+        a(tmpPos, k6v);
+
+        // 5차해
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + (k1r[i] * a7[0] + k3r[i] * a7[2] + k4r[i] * a7[3] + k5r[i] * a7[4] + k6r[i] * a7[5]) * h;
+            k7r[i] = vel[i] + (k1v[i] * a7[0] + k3v[i] * a7[2] + k4v[i] * a7[3] + k5v[i] * a7[4] + k6v[i] * a7[5]) * h;
+        }
+        a(tmpPos, k7v);
+
+        //오차
+        double errMax = 0.0;
+        for (int i = 0; i < n; i++)
+        {
+            Vector3D errR = (k1r[i] * e[0] + k3r[i] * e[2] + k4r[i] * e[3] + k5r[i] * e[4] + k6r[i] * e[5] + k7r[i] * e[6]) * h;
+            Vector3D errV = (k1v[i] * e[0] + k3v[i] * e[2] + k4v[i] * e[3] + k5v[i] * e[4] + k6v[i] * e[5] + k7v[i] * e[6]) * h;
+
+            // tmpPos[i] = rNew,  k7r[i] = vNew
+            double sc1 = aTol + rTol * MathUtility.Max(MathUtility.Abs(pos[i].x), MathUtility.Abs(tmpPos[i].x));
+            double sc2 = aTol + rTol * MathUtility.Max(MathUtility.Abs(pos[i].y), MathUtility.Abs(tmpPos[i].y));
+            double sc3 = aTol + rTol * MathUtility.Max(MathUtility.Abs(pos[i].z), MathUtility.Abs(tmpPos[i].z));
+            double sc4 = aTol + rTol * MathUtility.Max(MathUtility.Abs(vel[i].x), MathUtility.Abs(k7r[i].x));
+            double sc5 = aTol + rTol * MathUtility.Max(MathUtility.Abs(vel[i].y), MathUtility.Abs(k7r[i].y));
+            double sc6 = aTol + rTol * MathUtility.Max(MathUtility.Abs(vel[i].z), MathUtility.Abs(k7r[i].z));
+
+            double errNorm = MathUtility.Sqrt(
+      (errR.x * errR.x) / (sc1 * sc1) + (errR.y * errR.y) / (sc2 * sc2) + (errR.z * errR.z) / (sc3 * sc3)
+    + (errV.x * errV.x) / (sc4 * sc4) + (errV.y * errV.y) / (sc5 * sc5) + (errV.z * errV.z) / (sc6 * sc6)
+    ) / MathUtility.Sqrt(6.0);
+
+            if (errNorm > errMax) errMax = errNorm;
+        }
+       
+        accepted = errMax<=1.0;
+        if (accepted)
+        {
+            for (int i = 0; i < n; i++) { pos[i] = tmpPos[i]; vel[i] = k7r[i]; }
+        }// 원소 복사 
+
+        //h갱신
+        h = h * MathUtility.Min(5, MathUtility.Max(0.2, 0.9 * MathUtility.Pow(MathUtility.Max(errMax, ConstUtility.Epcilon16), -0.2)));
+
+        //바닥한계
+        if (h < ConstUtility.Epcilon12) throw new InvalidOperationException("RK45: 스텝 크기가 바닥에 닿음");
+    }
 }
