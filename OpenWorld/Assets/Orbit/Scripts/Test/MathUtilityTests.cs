@@ -52,10 +52,6 @@ public class MathUtilityTests : MonoBehaviour
         var s0 = orbit.StateAt(0.0);
         pos = s0.Position; vel = s0.Velocity;
 
-        // 사전 점검: 손계산 값과 1e-15 수준에서 같아야 함
-        Debug.Log($"r0={pos.x}, {pos.y}, {pos.z}   expected=({1.0 - e}, 0, 0)");
-        Debug.Log($"v0={vel.x}, {vel.y}, {vel.z}   expected=(0, {MathUtility.Sqrt((1.0 + e) / (1.0 - e))}, 0)");
-
         E0 = Energy(pos, vel);
         energyErrorMax = 0;
         posErrorMax = 0;
