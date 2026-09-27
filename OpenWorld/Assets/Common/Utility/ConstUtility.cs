@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 /// <summary>
 /// 상수 모음
 /// </summary>
@@ -65,4 +67,9 @@ public static class ConstUtility
     public const double INV_FACT12 = 1.0 / 479001600.0;
     public const double INV_FACT14 = 1.0 / 87178291200.0;
     public const double INV_FACT16 = 1.0 / 20922789888000.0;
+
+    //시간 변환 관련
+    public const double TT_TAI = 32.184;   // TT - TAI (초)
+    public const double ERA_UT1 = 0.7790572732640;
+    public const double ERA_UT1_RATE = 1.00273781191135448;
 }

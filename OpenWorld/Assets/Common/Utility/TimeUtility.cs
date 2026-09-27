@@ -1,11 +1,7 @@
 using System;
-using System.Globalization;
-using UnityEngine.Assertions.Must;
 
 public static class TimeUtility
 {
-    public const double TT_TAI = 32.184;   // TT - TAI (초)
-
     //윤초 배열
     private static readonly (int Year, int Month, int DeltaAT)[] LeapSecondTable =
 {
@@ -162,13 +158,17 @@ public static class TimeUtility
     /// <returns></returns>
     public static double UtcToTTSeconds(int Y, int M, int D, int H, int Min, double S)
     {
-        //윤초 삽입 조건
-        if(DeltaAT(Y, M, D) - DeltaAT(Y, M, D - 1)==1 && H==23 && Min==59)
+        //윤초 입력 검증: 60초 이상은 윤초가 실제로 들어가는 날 23:59에만 허용
+        if (S >= 60.0)
         {
-            S = 60.0;
+            var n = AddDays(Y, M, D, 1);
+            bool leap = H == 23 && Min == 59 && S < 61.0
+                     && DeltaAT(n.Y, n.M, n.D) - DeltaAT(Y, M, D) == 1;
+            if (!leap)
+                throw new ArgumentOutOfRangeException(nameof(S), "해당 시각에는 윤초가 없습니다.");
         }
 
-        double tt = SecondsSinceJ2000(Y, M, D, H, Min, S) + DeltaAT(Y, M, D) + TT_TAI;
+        double tt = SecondsSinceJ2000(Y, M, D, H, Min, S) + DeltaAT(Y, M, D) + ConstUtility.TT_TAI;
         return tt;
     }
     /// <summary>
@@ -179,7 +179,7 @@ public static class TimeUtility
     public static (int Y, int M, int D, int H, int Min, double S) TTSecondsToUtc(double tt)
     {
         //TT -> TAI
-        double tai = tt - TT_TAI;
+        double tai = tt - ConstUtility.TT_TAI;
 
         //예외 처리
         double taiMin = SecondsSinceJ2000(1972, 1, 1, 0, 0, 0) + DeltaAT(1972, 1, 1);
@@ -236,5 +236,21 @@ public static class TimeUtility
     {
         var c = JulianDateToCalendar(JulianDate(Y, M, D) + n);
         return (c.Y, c.M, c.D);
+    }
+
+    /// <summary>
+    /// UTC -> TU (UT1) 일수
+    /// </summary>
+    /// <param name="Y"></param>
+    /// <param name="M"></param>
+    /// <param name="D"></param>
+    /// <param name="H"></param>
+    /// <param name="Min"></param>
+    /// <param name="S"></param>
+    /// <param name="ut1MinusUtc"></param>
+    /// <returns></returns>
+    public static double UtcToTuDays(int Y, int M, int D, int H, int Min, double S, double ut1MinusUtc = 0.0)
+    {
+        return (SecondsSinceJ2000(Y, M, D, H, Min, S) + ut1MinusUtc) / 86400.0;
     }
 }
