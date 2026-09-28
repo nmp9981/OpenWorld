@@ -1,13 +1,21 @@
 ﻿using NUnit.Framework;
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class TimeTest : MonoBehaviour
 {
     void Start()
     {
-   
-        Debug.Log(TimeUtility.UtcToTTSeconds(2016, 12, 31, 23, 59, 60.5));
+        Fukushima_Williams_4Angle_Test();     
+    }
+
+    /// <summary>
+    /// 세차 테스트
+    /// </summary>
+    void Fukushima_Williams_4Angle_Test()
+    {
+
     }
 
     void ERATest()

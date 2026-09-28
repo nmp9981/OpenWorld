@@ -72,4 +72,7 @@ public static class ConstUtility
     public const double TT_TAI = 32.184;   // TT - TAI (초)
     public const double ERA_UT1 = 0.7790572732640;
     public const double ERA_UT1_RATE = 1.00273781191135448;
+
+    //좌표계 변환 관련
+    public const double AngleSecondToRad = 4.848136811095359935899141e-6;   // 1초각 → 라디안
 }
