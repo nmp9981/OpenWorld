@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -7,7 +8,7 @@ public class TimeTest : MonoBehaviour
 {
     void Start()
     {
-        Fukushima_Williams_4Angle_Test();     
+        Debug.Log(CoordinateSystemUtility.Nutation(189345600.0));
     }
 
     /// <summary>
@@ -15,7 +16,11 @@ public class TimeTest : MonoBehaviour
     /// </summary>
     void Fukushima_Williams_4Angle_Test()
     {
-
+        var angle4 = CoordinateSystemUtility.Fukushima_Williams_4Angle(-122731208.64);
+        Debug.Log(angle4.gamb);
+        Debug.Log(angle4.phib);
+        Debug.Log(angle4.psib);
+        Debug.Log(angle4.epsa);
     }
 
     void ERATest()
