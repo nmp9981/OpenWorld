@@ -196,4 +196,94 @@ public class CoordinateSystemUtility
 
         return (dpsi,deps);
     }
+    /// <summary>
+    /// 행렬  변환, Fukushima-Williams 4각도
+    /// </summary>
+    /// <param name="gamb"></param>
+    /// <param name="phib"></param>
+    /// <param name="psi"></param>
+    /// <param name="eps"></param>
+    /// <returns></returns>
+    public static Matrix3x3D Fw2m(double gamb, double phib, double psi, double eps)
+    {
+        // R1(-eps) · R3(-psi) · R1(phib) · R3(gamb)
+        return Matrix3x3D.R1Frame(-eps)*Matrix3x3D.R3Frame(-psi)*Matrix3x3D.R1Frame(phib)*Matrix3x3D.R3Frame(gamb);
+    }
+    /// <summary>
+    ///  NPB 행렬 (프레임 바이어스·세차·장동): GCRS → 그 날짜의 실제 적도·춘분점
+    /// </summary>
+    /// <param name="ttSeconds"></param>
+    /// <returns></returns>
+    public static Matrix3x3D PrecessionNutationMatrix(double ttSeconds)
+    {
+        var (gamb, phib, psib, epsa) = Fukushima_Williams_4Angle(ttSeconds);
+        var (dpsi, deps) = Nutation(ttSeconds);
+        return Fw2m(gamb, phib, psib + dpsi, epsa + deps);
+    }
+    /// <summary>
+    /// GCRS → CIRS 행렬
+    /// </summary>
+    /// <param name="tuDays"></param>
+    /// <param name="ttSeconds"></param>
+    /// <returns></returns>
+    public static Matrix3x3D GCRS_To_CIRSMatrix(double X, double Y, double s)
+    {
+        double E = MathUtility.ArkTan2(Y, X);//CIP가 기울어진 방향
+        double rootXY = MathUtility.Sqrt((X* X + Y * Y)/(1-X*X-Y*Y));
+        double d = MathUtility.ArkTan(rootXY);//CIP가 기울어진 크기
+        Matrix3x3D C = Matrix3x3D.R3Frame(-(E+s)) * Matrix3x3D.R2Frame(d) * Matrix3x3D.R3Frame(E);
+        return C;
+    }
+    /// <summary>
+    /// GCRS → TIRS 행렬
+    /// </summary>
+    /// <param name="X"></param>
+    /// <param name="Y"></param>
+    /// <param name="s"></param>
+    /// <returns></returns>
+    public static Matrix3x3D GCRS_To_TIRSMatrix(double ttSecond, double ut1MinusUtc=0.0)
+    {
+        var M = PrecessionNutationMatrix(ttSecond);
+        double T = ttSecond / (86400.0 * 36525.0);
+        double Om = (450160.398036 - 6962890.5431 * T) % 1296000.0 * ConstUtility.AngleSecondToRad;
+        double X = M.m20;
+        double Y = M.m21;
+
+        double poly = 94.00 + (3808.65 + (-122.68 + (-72574.11 + (27.98 + 15.62 * T) * T) * T) * T) * T;
+        double periodic = -2640.73 * MathUtility.Sin(Om) - 63.53 * MathUtility.Sin(2.0 * Om);
+        double s = -X * Y / 2.0 + (poly + periodic) * ConstUtility.AngleSecondToRad * 1e-6;
+
+        // TT 초 → UTC 달력 → UT1 일수 → ERA
+        var u = TimeUtility.TTSecondsToUtc(ttSecond);
+        double tu = TimeUtility.UtcToTuDays(u.Y, u.M, u.D, u.H, u.Min, u.S, ut1MinusUtc);
+        double Era = ERA(tu);
+        Matrix3x3D gcrsToTirs = Matrix3x3D.R3Frame(Era) * GCRS_To_CIRSMatrix(X,Y,s);
+        return gcrsToTirs;
+    }
+    /// <summary>
+    /// W 행렬 (지구 자전 좌표계 → 지구 고정 좌표계)
+    /// </summary>
+    /// <param name="xp"></param>
+    /// <param name="yp"></param>
+    /// <param name="s"></param>
+    /// <returns></returns>
+    public static Matrix3x3D WMatrix(double xp, double yp, double ttSecond)
+    {
+        double T = ttSecond / (86400.0 * 36525.0);
+        double sFrime = -47e-6 * T * ConstUtility.AngleSecondToRad;
+        return Matrix3x3D.R1Frame(-yp) * Matrix3x3D.R2Frame(-xp) * Matrix3x3D.R3Frame(sFrime);
+    }
+    /// <summary>
+    /// GCRS → ITRS 행렬
+    /// </summary>
+    /// <param name="ttSecond"></param>
+    /// <param name="ut1MinusUtc"></param>
+    /// <param name="xp"></param>
+    /// <param name="yp"></param>
+    /// <returns></returns>
+    public static Matrix3x3D GCRS_To_ITRSMatrix(double ttSecond, double ut1MinusUtc = 0.0,
+                                            double xp = 0.0, double yp = 0.0)
+    {
+        return WMatrix(xp, yp, ttSecond) * GCRS_To_TIRSMatrix(ttSecond, ut1MinusUtc);
+    }
 }
