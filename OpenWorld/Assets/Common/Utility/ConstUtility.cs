@@ -76,4 +76,5 @@ public static class ConstUtility
     //좌표계 변환 관련
     public const double AngleSecondToRad = 4.848136811095359935899141e-6;   // 1초각 → 라디안
     public const double ERFA_DMAS2R = 4.848136811095359935899141e-9;   // 1초각 → 라디안
+    public const double OMEGA_EARTH = 7.292115146706979e-5;   // 지구 자전각속도 (rad/s)
 }

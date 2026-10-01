@@ -243,22 +243,37 @@ public class CoordinateSystemUtility
     /// <returns></returns>
     public static Matrix3x3D GCRS_To_TIRSMatrix(double ttSecond, double ut1MinusUtc=0.0)
     {
-        var M = PrecessionNutationMatrix(ttSecond);
-        double T = ttSecond / (86400.0 * 36525.0);
-        double Om = (450160.398036 - 6962890.5431 * T) % 1296000.0 * ConstUtility.AngleSecondToRad;
-        double X = M.m20;
-        double Y = M.m21;
-
-        double poly = 94.00 + (3808.65 + (-122.68 + (-72574.11 + (27.98 + 15.62 * T) * T) * T) * T) * T;
-        double periodic = -2640.73 * MathUtility.Sin(Om) - 63.53 * MathUtility.Sin(2.0 * Om);
-        double s = -X * Y / 2.0 + (poly + periodic) * ConstUtility.AngleSecondToRad * 1e-6;
+        //C 행렬
+        Matrix3x3D C = CMatrix(ttSecond);
 
         // TT 초 → UTC 달력 → UT1 일수 → ERA
         var u = TimeUtility.TTSecondsToUtc(ttSecond);
         double tu = TimeUtility.UtcToTuDays(u.Y, u.M, u.D, u.H, u.Min, u.S, ut1MinusUtc);
         double Era = ERA(tu);
-        Matrix3x3D gcrsToTirs = Matrix3x3D.R3Frame(Era) * GCRS_To_CIRSMatrix(X,Y,s);
+        Matrix3x3D gcrsToTirs = Matrix3x3D.R3Frame(Era) * C;
         return gcrsToTirs;
+    }
+    /// <summary>
+    /// C 행렬 ,GCRS → CIRS 행렬 C (입력: TT 기준 J2000 경과 초)
+    /// </summary>
+    /// <param name="ttSecond"></param>
+    /// <returns></returns>
+    public static Matrix3x3D CMatrix(double ttSecond)
+    {
+        // 1. NPB 행렬에서 CIP 좌표 X, Y
+        var npb = PrecessionNutationMatrix(ttSecond);
+        double X = npb.m20;
+        double Y = npb.m21;
+
+        // 2. CIO locator s (근사식)
+        double T = ttSecond / (86400.0 * 36525.0);
+        double Om = (450160.398036 - 6962890.5431 * T) % 1296000.0 * ConstUtility.AngleSecondToRad;
+        double poly = 94.00 + (3808.65 + (-122.68 + (-72574.11 + (27.98 + 15.62 * T) * T) * T) * T) * T;
+        double periodic = -2640.73 * MathUtility.Sin(Om) - 63.53 * MathUtility.Sin(2.0 * Om);
+        double s = -X * Y / 2.0 + (poly + periodic) * ConstUtility.AngleSecondToRad * 1e-6;
+
+        // 3. X, Y, s → C
+        return GCRS_To_CIRSMatrix(X, Y, s);
     }
     /// <summary>
     /// W 행렬 (지구 자전 좌표계 → 지구 고정 좌표계)
@@ -275,15 +290,78 @@ public class CoordinateSystemUtility
     }
     /// <summary>
     /// GCRS → ITRS 행렬
+    /// xp, yp는 라디안
     /// </summary>
     /// <param name="ttSecond"></param>
     /// <param name="ut1MinusUtc"></param>
     /// <param name="xp"></param>
     /// <param name="yp"></param>
     /// <returns></returns>
-    public static Matrix3x3D GCRS_To_ITRSMatrix(double ttSecond, double ut1MinusUtc = 0.0,
-                                            double xp = 0.0, double yp = 0.0)
+    public static Matrix3x3D GCRS_To_ITRSMatrix(double ttSecond, double xp, double yp, double ut1MinusUtc = 0.0)
     {
         return WMatrix(xp, yp, ttSecond) * GCRS_To_TIRSMatrix(ttSecond, ut1MinusUtc);
+    }
+    /// <summary>
+    /// ITRS → GCRS 행렬
+    /// </summary>
+    /// <param name="ttSecond"></param>
+    /// <param name="xp"></param>
+    /// <param name="yp"></param>
+    /// <param name="ut1MinusUtc"></param>
+    /// <returns></returns>
+    public static (Vector3D r, Vector3D v) ITRS_To_GCRS(double ttSecond, Vector3D rI, Vector3D vI,
+                                                     double xp, double yp, double ut1MinusUtc = 0.0)
+    {
+        var MSet = TransformParts(ttSecond, xp, yp);
+        Vector3D w = new Vector3D(0, 0, ConstUtility.OMEGA_EARTH);
+
+        var r_TIRS = MSet.W.Transpose() * rI;
+        var v_TIRS = MSet.W.Transpose() * vI;
+        var r_GTRS = MSet.C.Transpose() * Matrix3x3D.R3Frame(MSet.era).Transpose() * r_TIRS;
+        var v_GTRS = MSet.C.Transpose() * Matrix3x3D.R3Frame(MSet.era).Transpose() * (v_TIRS+Vector3D.Cross(w,r_TIRS));
+        return (r_GTRS, v_GTRS);
+    }
+
+    /// <summary>
+    /// GCRS → ITRS 행렬
+    /// </summary>
+    /// <param name="ttSecond"></param>
+    /// <param name="rG"></param>
+    /// <param name="vG"></param>
+    /// <param name="xp"></param>
+    /// <param name="yp"></param>
+    /// <param name="ut1MinusUtc"></param>
+    /// <returns></returns>
+    public static (Vector3D r, Vector3D v) GCRS_To_ITRS(double ttSecond, Vector3D rG, Vector3D vG,
+                                                     double xp, double yp, double ut1MinusUtc = 0.0)
+    {
+        var MSet = TransformParts(ttSecond, xp, yp);
+        Vector3D w = new Vector3D(0, 0, ConstUtility.OMEGA_EARTH);
+
+        var r_TIRS = Matrix3x3D.R3Frame(MSet.era) * MSet.C * rG;
+        var v_TIRS = Matrix3x3D.R3Frame(MSet.era) * MSet.C * vG + Vector3D.Cross(w , r_TIRS);
+        var r_ITRS = MSet.W * r_TIRS;
+        var v_ITRS = MSet.W * v_TIRS;
+        return (r_ITRS, v_ITRS);
+    }
+    /// <summary>
+    /// 부품: 시각 하나로 세 성분을 한 번에 계산
+    /// </summary>
+    /// <param name="ttSecond"></param>
+    /// <param name="xp"></param>
+    /// <param name="yp"></param>
+    /// <param name="ut1MinusUtc"></param>
+    /// <returns></returns>
+    public static (Matrix3x3D C, double era, Matrix3x3D W) TransformParts(
+        double ttSecond, double xp, double yp, double ut1MinusUtc = 0.0)
+    {
+        var u = TimeUtility.TTSecondsToUtc(ttSecond);
+        double tu = TimeUtility.UtcToTuDays(u.Y, u.M, u.D, u.H, u.Min, u.S, ut1MinusUtc);
+        double Era = ERA(tu);
+
+        Matrix3x3D C = CMatrix(ttSecond);
+        Matrix3x3D W = WMatrix(xp, yp, ttSecond);
+
+        return (C, Era, W);
     }
 }
