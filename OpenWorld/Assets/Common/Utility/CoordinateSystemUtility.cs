@@ -1,6 +1,3 @@
-using UnityEditor;
-using UnityEngine;
-
 public struct eraNut00b
 {
     public int nl, nlp, nf, nd, nom; /* coefficients of l,l',F,D,Om */
@@ -310,9 +307,9 @@ public class CoordinateSystemUtility
     /// <param name="ut1MinusUtc"></param>
     /// <returns></returns>
     public static (Vector3D r, Vector3D v) ITRS_To_GCRS(double ttSecond, Vector3D rI, Vector3D vI,
-                                                     double xp, double yp, double ut1MinusUtc = 0.0)
+                                                     double xp, double yp, double ut1MinusUtc)
     {
-        var MSet = TransformParts(ttSecond, xp, yp);
+        var MSet = TransformParts(ttSecond, xp, yp, ut1MinusUtc);
         Vector3D w = new Vector3D(0, 0, ConstUtility.OMEGA_EARTH);
 
         var r_TIRS = MSet.W.Transpose() * rI;
@@ -320,6 +317,20 @@ public class CoordinateSystemUtility
         var r_GTRS = MSet.C.Transpose() * Matrix3x3D.R3Frame(MSet.era).Transpose() * r_TIRS;
         var v_GTRS = MSet.C.Transpose() * Matrix3x3D.R3Frame(MSet.era).Transpose() * (v_TIRS+Vector3D.Cross(w,r_TIRS));
         return (r_GTRS, v_GTRS);
+    }
+    /// <summary>
+    /// ITRS → GCRS 행렬, EOP 테이블 사용
+    /// </summary>
+    /// <param name="ttSecond"></param>
+    /// <param name="rI"></param>
+    /// <param name="vI"></param>
+    /// <param name="eop"></param>
+    /// <returns></returns>
+    public static (Vector3D r, Vector3D v) ITRS_To_GCRS(double ttSecond, Vector3D rI, Vector3D vI, EopTable eop)
+    {
+        var u = TimeUtility.TTSecondsToUtc(ttSecond);
+        var e = eop.At(u.Y, u.M, u.D, u.H, u.Min, u.S);
+        return ITRS_To_GCRS(ttSecond, rI, vI, e.xp, e.yp, e.ut1MinusUtc);
     }
 
     /// <summary>
@@ -333,9 +344,9 @@ public class CoordinateSystemUtility
     /// <param name="ut1MinusUtc"></param>
     /// <returns></returns>
     public static (Vector3D r, Vector3D v) GCRS_To_ITRS(double ttSecond, Vector3D rG, Vector3D vG,
-                                                     double xp, double yp, double ut1MinusUtc = 0.0)
+                                                     double xp, double yp, double ut1MinusUtc)
     {
-        var MSet = TransformParts(ttSecond, xp, yp);
+        var MSet = TransformParts(ttSecond, xp, yp, ut1MinusUtc);
         Vector3D w = new Vector3D(0, 0, ConstUtility.OMEGA_EARTH);
 
         var r_TIRS = Matrix3x3D.R3Frame(MSet.era) * MSet.C * rG;
@@ -343,6 +354,20 @@ public class CoordinateSystemUtility
         var r_ITRS = MSet.W * r_TIRS;
         var v_ITRS = MSet.W * v_TIRS;
         return (r_ITRS, v_ITRS);
+    }
+    /// <summary>
+    /// GCRS → ITRS 행렬, EOP 테이블 사용
+    /// </summary>
+    /// <param name="ttSecond"></param>
+    /// <param name="rG"></param>
+    /// <param name="vG"></param>
+    /// <param name="eop"></param>
+    /// <returns></returns>
+    public static (Vector3D r, Vector3D v) GCRS_To_ITRS(double ttSecond, Vector3D rG, Vector3D vG, EopTable eop)
+    {
+        var u = TimeUtility.TTSecondsToUtc(ttSecond);
+        var e = eop.At(u.Y, u.M, u.D, u.H, u.Min, u.S);
+        return GCRS_To_ITRS(ttSecond, rG, vG, e.xp, e.yp, e.ut1MinusUtc);
     }
     /// <summary>
     /// 부품: 시각 하나로 세 성분을 한 번에 계산
@@ -353,7 +378,7 @@ public class CoordinateSystemUtility
     /// <param name="ut1MinusUtc"></param>
     /// <returns></returns>
     public static (Matrix3x3D C, double era, Matrix3x3D W) TransformParts(
-        double ttSecond, double xp, double yp, double ut1MinusUtc = 0.0)
+        double ttSecond, double xp, double yp, double ut1MinusUtc)
     {
         var u = TimeUtility.TTSecondsToUtc(ttSecond);
         double tu = TimeUtility.UtcToTuDays(u.Y, u.M, u.D, u.H, u.Min, u.S, ut1MinusUtc);

@@ -5,10 +5,13 @@ using Unity.VisualScripting;
 using UnityEngine;
 using System.IO;
 using UnityEngine.Rendering;
+using System.Globalization;
+using System.Text;
 
 public class TimeTest : MonoBehaviour
 {
-    const string FilePath = @"D:\DownLoad\Project_Data\Orbit\finals2000A.all";
+    const string EopPath = @"D:\DownLoad\Project_Data\Orbit\finals2000A.all";
+    const string CsvPath = @"D:\DownLoad\Project_Data\Orbit\eop_effect.csv";
 
     const double TolUt1 = 1e-7;   // 초. 파일 값이 소수 7자리
     const double TolPm = 1e-11;  // 라디안. 각초 1e-6 ≈ 4.8e-12 rad
@@ -16,13 +19,74 @@ public class TimeTest : MonoBehaviour
 
     void Start()
     {
-        EOPTest();
+        EOPTest2();
     }
 
 
+    void EOPTest2()
+    {
+        var eop = EopTable.Parse(File.ReadAllLines(EopPath));
+
+        var rI = new Vector3D(6378137.0, 0.0, 0.0);   // ITRS 고정점 [m]
+        var vI = new Vector3D(0.0, 0.0, 0.0);          // 지표에 고정 → ITRS 속도 0
+        double r2as = 1.0 / ConstUtility.AngleSecondToRad;
+        var inv = CultureInfo.InvariantCulture;
+
+        var csv = new StringBuilder();
+        csv.AppendLine("date,ut1_utc_s,xp_as,yp_as,effect_ut1_m,effect_pm_m,effect_total_m,predicted");
+
+        double maxUt1 = 0, maxPm = 0, maxTotal = 0;
+        string maxUt1Date = "", maxPmDate = "", maxTotalDate = "";
+        int days = 0;
+
+        for (var day = new DateTime(2016, 1, 1); day.Year < 2028; day = day.AddDays(1))
+        {
+            // 매일 12:00 UTC (윤초 순간과 겹치지 않음)
+            int Y = day.Year, M = day.Month, D = day.Day;
+
+            (double ut1MinusUtc, double xp, double yp, bool predicted) e;
+            try { e = eop.At(Y, M, D, 12, 0, 0.0); }
+            catch (ArgumentOutOfRangeException) { break; }   // 파일 범위 끝
+
+            double tt = TimeUtility.UtcToTTSeconds(Y, M, D, 12, 0, 0.0);
+
+            Vector3D rNone = CoordinateSystemUtility.ITRS_To_GCRS(tt, rI, vI, 0.0, 0.0, 0.0).r;
+            Vector3D rUt1 = CoordinateSystemUtility.ITRS_To_GCRS(tt, rI, vI, 0.0, 0.0, e.ut1MinusUtc).r;
+            Vector3D rPm = CoordinateSystemUtility.ITRS_To_GCRS(tt, rI, vI, e.xp, e.yp, 0.0).r;
+            Vector3D rFull = CoordinateSystemUtility.ITRS_To_GCRS(tt, rI, vI, e.xp, e.yp, e.ut1MinusUtc).r;
+
+            double effUt1 = MathUtility.Sqrt((rUt1.x - rNone.x) * (rUt1.x - rNone.x) + (rUt1.y - rNone.y) * (rUt1.y - rNone.y) + (rUt1.z - rNone.z) * (rUt1.z - rNone.z));          
+            double effPm = MathUtility.Sqrt((rPm.x - rNone.x) * (rPm.x - rNone.x) + (rPm.y - rNone.y) * (rPm.y - rNone.y) + (rPm.z - rNone.z) * (rPm.z - rNone.z));
+            double effTotal = MathUtility.Sqrt((rFull.x - rNone.x) * (rFull.x - rNone.x) + (rFull.y - rNone.y) * (rFull.y - rNone.y) + (rFull.z - rNone.z) * (rFull.z - rNone.z));
+
+            string date = day.ToString("yyyy-MM-dd", inv);
+            if (effUt1 > maxUt1) { maxUt1 = effUt1; maxUt1Date = date; }
+            if (effPm > maxPm) { maxPm = effPm; maxPmDate = date; }
+            if (effTotal > maxTotal) { maxTotal = effTotal; maxTotalDate = date; }
+
+            csv.AppendLine(string.Join(",",
+                date,
+                e.ut1MinusUtc.ToString("F7", inv),
+                (e.xp * r2as).ToString("F6", inv),
+                (e.yp * r2as).ToString("F6", inv),
+                effUt1.ToString("F3", inv),
+                effPm.ToString("F3", inv),
+                effTotal.ToString("F3", inv),
+                e.predicted ? "1" : "0"));
+            days++;
+        }
+
+        File.WriteAllText(CsvPath, csv.ToString());
+
+        Debug.Log($"EOP 효과 실험: {days}일 계산, 결과 → {CsvPath}");
+        Debug.Log($"UT1-UTC 효과 최대 {maxUt1:F1} m ({maxUt1Date})");
+        Debug.Log($"극운동 효과 최대 {maxPm:F2} m ({maxPmDate})");
+        Debug.Log($"전체 효과 최대 {maxTotal:F1} m ({maxTotalDate})");
+    }
+  
     void EOPTest()
     {
-        var eop = EopTable.Parse(File.ReadAllLines(FilePath));
+        var eop = EopTable.Parse(File.ReadAllLines(EopPath));
         double as2r = ConstUtility.AngleSecondToRad;
 
         // 1. 자정이면 파일 값 그대로
@@ -79,11 +143,11 @@ public class TimeTest : MonoBehaviour
     {
         Vector3D rg = new Vector3D(6778137.0, 0, 0);
         Vector3D vg = new Vector3D(0, 4000.0, 6440.0);
-        var res1 = CoordinateSystemUtility.GCRS_To_ITRS(189345600, rg, vg, 2.55060238e-7, 1.860359247e-6);
+        var res1 = CoordinateSystemUtility.GCRS_To_ITRS(189345600, rg, vg, 2.55060238e-7, 1.860359247e-6, 0.0);
 
         Vector3D rl = new Vector3D(-1195854.58017826, -6671810.67625475, 3913.31685439506);
         Vector3D vl = new Vector3D(3451.1427048424, -614.804980499884, 6440.15771238911);
-        var res2 = CoordinateSystemUtility.ITRS_To_GCRS(189345600, rl, vl, 2.55060238e-7, 1.860359247e-6);
+        var res2 = CoordinateSystemUtility.ITRS_To_GCRS(189345600, rl, vl, 2.55060238e-7, 1.860359247e-6, 0.0);
     }
 
     public void ITRS_TIRS_Test()
