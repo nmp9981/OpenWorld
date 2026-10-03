@@ -339,7 +339,7 @@ public class CoordinateSystemUtility
         Vector3D w = new Vector3D(0, 0, ConstUtility.OMEGA_EARTH);
 
         var r_TIRS = Matrix3x3D.R3Frame(MSet.era) * MSet.C * rG;
-        var v_TIRS = Matrix3x3D.R3Frame(MSet.era) * MSet.C * vG + Vector3D.Cross(w , r_TIRS);
+        var v_TIRS = Matrix3x3D.R3Frame(MSet.era) * MSet.C * vG - Vector3D.Cross(w , r_TIRS);
         var r_ITRS = MSet.W * r_TIRS;
         var v_ITRS = MSet.W * v_TIRS;
         return (r_ITRS, v_ITRS);
