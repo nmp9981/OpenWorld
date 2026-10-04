@@ -176,7 +176,7 @@ public class CoordinateSystemUtility
         double D = (1072260.70369 + 1602961601.2090 * T) % 1296000.0 * ConstUtility.AngleSecondToRad; 
         double Om = (450160.398036 - 6962890.5431 * T) % 1296000.0 * ConstUtility.AngleSecondToRad; 
 
-        for (int i = 76; i >= 0; i--)   // 작은 항부터
+        for (int i = nutationCoefficients.Length - 1; i >= 0; i--)   // 작은 항부터
         {
             var n = nutationCoefficients[i];
             double arg = n.nl * l + n.nlp * lp + n.nf * F + n.nd * D + n.nom * Om;
