@@ -1,6 +1,9 @@
+using System.Security.Cryptography;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.VFX;
 using static IntegratorUtility;
+using static UnityEditor.PlayerSettings;
 
 public class orbutTest : MonoBehaviour
 {
@@ -8,6 +11,7 @@ public class orbutTest : MonoBehaviour
     void Start()
     {
         Example4_9();
+        ConnectIntegralTest();
     }
 
     /// <summary>
@@ -210,24 +214,49 @@ public class orbutTest : MonoBehaviour
     /// </summary>
     void Example4_92(Vector3D rx, Vector3D vx)
     {
+        double rTol = 1e-10, aTol = 1e-10;
         double Mu = 398600.4418;
         Vector3D K = new Vector3D(0, 0, 1);
-        AccelFunc twoBody = r => Gravity.TwoBody(r, Mu) + Perturbation.J2Accel(r, K, Mu, 6378.1363, 0.00108262668); ;
+        AccelFunc twoBody = r => Gravity.TwoBody(r, Mu) + Perturbation.J2Accel(r, K, Mu, 6378.1363, 0.00108262668);
 
         StateVector state0 = new StateVector(new Vector3D(-3670.0, -3870.0, 4400.0),
             new Vector3D(4.7, -7.4, 1.0));
         var r0 = state0.Position;
         var v0 = state0.Velocity;
         
-        double dt = 10;
-        int N = 34560;//345600/10
-        
-        for (int s = 1; s <= N; s++)
-        {
-            VelocityVerlet(ref r0, ref v0, dt, twoBody);
-        }
+        double dt = 0.05;
+        double tEnd = 345600;//96시간
+        int step = 0;
 
+        double t = 0;
+        
+        while (t < tEnd)
+        {
+            if (t + dt > tEnd) dt = tEnd - t;
+            double hUsed = dt;
+            RK45(ref r0, ref v0,ref dt, twoBody,rTol, aTol, out bool ok);
+
+            if(ok)
+            {
+                t += hUsed;
+                step++;
+            }
+        }
+        Debug.Log($"step {step}");
         Debug.Log($"rxNew 차이 : {r0.x-rx.x} {r0.y-rx.y} {r0.z - rx.z}");
         Debug.Log($"vxNew 차이 : {v0.x-vx.x} {v0.y-vx.y} {v0.z-vx.z}");
+
+        //RSW
+        Vector3D rHat = r0.Normalized();
+        Vector3D hVec = Vector3D.Cross(r0, v0);
+        Vector3D wHat = hVec.Normalized();
+        Vector3D sHat = Vector3D.Cross(wHat, rHat);
+
+        double deltaR = Vector3D.Dot(r0-rx, rHat);
+        double deltaS = Vector3D.Dot(r0 - rx, sHat);
+        double deltaW = Vector3D.Dot(r0 - rx,wHat);
+        double rsw = MathUtility.Sqrt(deltaR*deltaR + deltaS*deltaS+deltaW*deltaW);
+        Debug.Log($"RSW 값 {deltaR} {deltaS} {deltaW}");
+        Debug.Log($"RSW {rsw} {(r0 - rx).Magnitude()}");
     }
 }
