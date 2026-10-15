@@ -1,3 +1,5 @@
+using NUnit.Framework;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
@@ -10,8 +12,7 @@ public class orbutTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Example4_9();
-        ConnectIntegralTest();
+        TaskF();
     }
 
     /// <summary>
@@ -258,5 +259,92 @@ public class orbutTest : MonoBehaviour
         double rsw = MathUtility.Sqrt(deltaR*deltaR + deltaS*deltaS+deltaW*deltaW);
         Debug.Log($"RSW 값 {deltaR} {deltaS} {deltaW}");
         Debug.Log($"RSW {rsw} {(r0 - rx).Magnitude()}");
+    }
+    /// <summary>
+    /// 과제 F
+    /// </summary>
+    void TaskF()
+    {
+        //해석식
+        double i = 51.6 *ConstUtility.Deg2Rad;double e = 0;double a = 6778;double Mu = 398600.4418;
+        double deltaRAAN = -1.5 * MathUtility.Cos(i) * (MathUtility.Sqrt(Mu) * 0.00108263 * 6378.1363 * 6378.1363)
+            / ((1 - e*e) * (1 - e*e) * MathUtility.Pow(a, 3.5));
+        Debug.Log($"deltaRAAN : {deltaRAAN}");
+
+        //적분기
+        double rTol = 1e-10, aTol = 1e-10;
+        Vector3D K = new Vector3D(0, 0, 1);
+        AccelFunc twoBody = r => Gravity.TwoBody(r, Mu) + Perturbation.J2Accel(r, K, Mu, 6378.1363, 0.00108262668);
+
+        OrbitalElements newElements = new OrbitalElements()
+        {
+            p = 6778,
+            e = 0,
+            i = 51.6 * ConstUtility.Deg2Rad,
+            raan = 0,
+            argp = 0,
+            nu = 0,
+            Geometry = OrbitGeometry.General
+        };
+        StateVector state0 = OrbitElemental_To_StateVector(newElements,Mu);
+        var r0 = state0.Position;
+        var v0 = state0.Velocity;
+
+        double dt = 0.05;
+        double tEnd = 345600;//96시간
+        int step = 0;
+        double stepRAAN = 0;
+
+        double t = 0;
+        double avgDeltaRAAN = 0;
+        double preRAAN = 0;
+        double prevZ = r0.z;
+        double prevTime = 0;
+
+        List<(double,double)> RAANList = new List<(double,double)>();
+
+        while (t < tEnd)
+        {
+            if (t + dt > tEnd) dt = tEnd - t;
+            double hUsed = dt;
+            RK45(ref r0, ref v0, ref dt, twoBody, rTol, aTol, out bool ok);
+
+            if (ok)
+            {
+                double vr = Vector3D.Dot(r0,v0) / r0.Magnitude();
+
+                Vector3D hVec = Vector3D.Cross(r0, v0);
+                double h = hVec.Magnitude();
+
+                double incl_Angle = MathUtility.ArkCos(hVec.z / h);
+
+                Vector3D nVec = Vector3D.Cross(Vector3D.Forward, hVec);
+                double n = nVec.Magnitude();
+
+                double RAAN = MathUtility.ArkCos(nVec.x / n);
+                if (nVec.y >= 0) RAAN = MathUtility.ArkCos(nVec.x / n);
+                else RAAN = 2 * ConstUtility.PI - MathUtility.ArkCos(nVec.x / n);
+
+                if (r0.z >= 0 && prevZ<0)
+                {
+                    RAANList.Add((t, RAAN));
+                }
+                preRAAN = RAAN;
+                prevZ = r0.z;
+                prevTime = t;
+
+                t += hUsed;
+                step++;
+            }
+        }
+        for (int k = 1; k < RAANList.Count; k++)
+        {
+            Debug.Log(k + "번째 RAAN : " + RAANList[k].Item2);
+            double delta = RAANList[k].Item2 - RAANList[k - 1].Item2;
+            avgDeltaRAAN += delta;
+            stepRAAN+= (RAANList[k].Item1 - RAANList[k - 1].Item1);
+        }
+
+        Debug.Log($"최종 평균 deltaRAAN {avgDeltaRAAN/stepRAAN}");
     }
 }
