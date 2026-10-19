@@ -145,6 +145,7 @@ public static class IntegratorUtility
        //바닥한계
        if(h<ConstUtility.Epcilon12) throw new InvalidOperationException("RK45: 스텝 크기가 바닥에 닿음");
     }
+
     /// 고전 RK45. y=(r,v), f(y)=(v, a(r))에 적용
     public static void RK45(ref Vector3D r, ref Vector3D v, ref double h,AccelFunc a,
                         double rTol, double aTol, out bool accepted)

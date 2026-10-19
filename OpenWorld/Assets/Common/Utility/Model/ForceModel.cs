@@ -11,23 +11,25 @@ public sealed class ForceModel
     public bool useMoon = false;//달 사용 여부
     public bool useSun = false;//태양 사용 여부
 
-    public AccelFunc Build()
+    public double MuMoon = 4902.800;                       // km^3/s^2
+    public Vector3D MoonPosition = new Vector3D(384400, 0, 0); // 지심 [km], 구현 J 전까지 고정
+
+    public Vector3D Accel(double t, Vector3D r)
     {
-        // 클로저가 필드를 직접 참조하지 않도록 지역 변수로 복사.
-        // Build() 이후 필드를 바꿔도 이미 만든 델리게이트에는 영향이 없게 하기 위함.
-        double mu = Mu, re = Re, j2 = J2;
-        Vector3D k = PoleAxis;
+        Vector3D a = Gravity.TwoBody(r, Mu);
 
-        if(!useJ2) return r => Gravity.TwoBody(r, mu);//섭동 사용 X
+        if (useJ2)
+            a += Perturbation.J2Accel(r, PoleAxis, Mu, Re, J2);
 
-        if (useMoon)//3체 
+        if (useMoon)
         {
-            double mu3 = 10;
-            return (r,s) => Gravity.TwoBody(r, mu) + Perturbation.J2Accel(r, k, mu, re, j2) + Perturbation.ThirdBodyAccel(r, s, mu3);
+            Vector3D s = MoonPosition;   // 구현 J에서 GetMoonPosition(t)로 교체
+            a += Perturbation.ThirdBodyAccel(r, s, MuMoon);
         }
 
-        return r => Gravity.TwoBody(r,mu) + Perturbation.J2Accel(r, k, mu, re, j2);
+        return a;
     }
+
     /// <summary>
     /// 2체(점질량) 중력 가속도 a = -μ r / r³
     /// </summary>

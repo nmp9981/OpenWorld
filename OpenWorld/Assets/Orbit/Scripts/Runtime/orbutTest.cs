@@ -12,7 +12,7 @@ public class orbutTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        TaskF();
+        ThirdBodyAccelTest();
     }
 
     /// <summary>
@@ -346,5 +346,14 @@ public class orbutTest : MonoBehaviour
         }
 
         Debug.Log($"최종 평균 deltaRAAN {avgDeltaRAAN/stepRAAN}");
+    }
+    /// <summary>
+    /// ThirdBodyAccelTest 
+    /// </summary>
+    void ThirdBodyAccelTest()
+    {
+        double mu3 = 4902.800066; // 달의 중력상수 [km³/s²]
+        Vector3D accel3 = Perturbation.ThirdBodyAccel(new Vector3D(0, 6778, 0), new Vector3D(384400, 0, 0), mu3);
+        Debug.Log($"ThirdBodyAccel : {accel3.x} {accel3.y} {accel3.z}");
     }
 }
