@@ -1,6 +1,6 @@
-public static class Perturbation
+ï»¿public static class Perturbation
 {
-    // a_J2 = -(3/2) J2 ¥ì R©÷ / r^5 ¡¤ [ (1 - 5 (r¡¤k)©÷/r©÷) r + 2 (r¡¤k) k ]
+    // a_J2 = -(3/2) J2 Î¼ RÂ² / r^5 Â· [ (1 - 5 (rÂ·k)Â²/rÂ²) r + 2 (rÂ·k) k ]
     public static Vector3D J2Accel(in Vector3D r, in Vector3D k, double mu, double re, double j2)
     {
         double r2 = Vector3D.Dot(r, r);
@@ -11,8 +11,8 @@ public static class Perturbation
     }
 
     /// <summary>
-    /// J2 Ç×À» Æ÷ÇÔÇÑ ¼öÁ¤µÈ ¿¡³ÊÁö
-    /// kHat°¡ ½Ã°£¿¡ ´ëÇØ °íÁ¤ÀÏ ¶§¸¸ º¸Á¸
+    /// J2 í•­ì„ í¬í•¨í•œ ìˆ˜ì •ëœ ì—ë„ˆì§€
+    /// kHatê°€ ì‹œê°„ì— ëŒ€í•´ ê³ ì •ì¼ ë•Œë§Œ ë³´ì¡´
     /// </summary>
     /// <param name="r"></param>
     /// <param name="v"></param>
@@ -31,8 +31,8 @@ public static class Perturbation
     }
 
     /// <summary>
-    /// ±ØÃà(k) ¹æÇâ °¢¿îµ¿·® ¼ººĞ h¡¤k.
-    /// J2 ÆÛÅÙ¼ÈÀº kÃà ´ëÄªÀÌ¹Ç·Î k°¡ °íÁ¤ÀÏ ¶§ º¸Á¸µÈ´Ù. (ÀüÃ¼ h º¤ÅÍ´Â ¼¼Â÷ÇÏ¹Ç·Î ºñº¸Á¸)
+    /// ê·¹ì¶•(k) ë°©í–¥ ê°ìš´ë™ëŸ‰ ì„±ë¶„ hÂ·k.
+    /// J2 í¼í…ì…œì€ kì¶• ëŒ€ì¹­ì´ë¯€ë¡œ kê°€ ê³ ì •ì¼ ë•Œ ë³´ì¡´ëœë‹¤. (ì „ì²´ h ë²¡í„°ëŠ” ì„¸ì°¨í•˜ë¯€ë¡œ ë¹„ë³´ì¡´)
     /// </summary>
     /// <param name="r"></param>
     /// <param name="v"></param>
@@ -40,4 +40,24 @@ public static class Perturbation
     /// <returns></returns>
     public static double AxialAngularMomentum(in Vector3D r, in Vector3D v, in Vector3D k)
         => Vector3D.Dot(Vector3D.Cross(r, v), k);
+
+
+    /// <summary>
+    /// ì œ3ì²œì²´ì— ì˜í•œ ì„­ë™ ê°€ì†ë„ (ì§€êµ¬ ì¤‘ì‹¬ ì¢Œí‘œê³„, ì§ì ‘í•­ âˆ’ ê°„ì ‘í•­)
+    /// </summary>
+    /// <param name="r">ìœ„ì„± ìœ„ì¹˜, ì§€êµ¬ ì¤‘ì‹¬ [km]</param>
+    /// <param name="s">ì œ3ì²œì²´ ìœ„ì¹˜, ì§€êµ¬ ì¤‘ì‹¬ [km]</param>
+    /// <param name="mu3">ì œ3ì²œì²´ ì¤‘ë ¥ìƒìˆ˜ [kmÂ³/sÂ²]</param>
+    public static Vector3D ThirdBodyAccel(in Vector3D r, in Vector3D s, double mu3)
+    {
+        Vector3D rRel = s-r;
+        double rRel2 = Vector3D.Dot(rRel, rRel);
+        double rRelMag = MathUtility.Sqrt(rRel2);
+        double s2 = Vector3D.Dot(s, s);
+        double sMag = MathUtility.Sqrt(s2);
+        
+        double sr_accel = mu3 / (rRel2 * rRelMag);
+        double s_accel = mu3 / (s2 * sMag);
+        return sr_accel*rRel - s_accel * s;
+    }
 }

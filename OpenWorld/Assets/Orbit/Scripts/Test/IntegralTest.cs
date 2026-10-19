@@ -90,7 +90,7 @@ public class IntegralTest : MonoBehaviour
                 case Method.ExplicitEuler: IntegratorUtility.ExplicitEuler(ref pos, ref vel, dt, Gravity); break;
                 case Method.SymplecticEuler: IntegratorUtility.SymplecticEuler(ref pos, ref vel, dt, Gravity); break;
                 case Method.VelocityVerlet: IntegratorUtility.VelocityVerlet(ref pos, ref vel, dt, Gravity); break;
-                case Method.RK4: IntegratorUtility.RK4(ref pos, ref vel, dt, Gravity); break;
+                case Method.RK4: IntegratorUtility.RK4(ref pos, ref vel,dt, Gravity); break;
             }
             simT += dt;
         }

@@ -6,6 +6,8 @@ public static class IntegratorUtility
     /// <summary>가속도 함수: 위치 → 가속도. 시스템 정의는 호출자가 이 델리게이트로 넘긴다.</summary>
     public delegate Vector3D AccelFunc(Vector3D pos);
 
+    public delegate Vector3D AccelFuncT(double t,Vector3D pos);
+
     /// <summary>다물체용 가속도 함수: positions를 읽어 accelOut을 전부 덮어쓴다.</summary>
     public delegate void AccelFuncN(Vector3D[] positions, Vector3D[] accelOut);
 
@@ -25,6 +27,11 @@ public static class IntegratorUtility
     static readonly double[] b5 = { 35.0 / 384, 0.0, 500.0 / 1113, 125.0 / 192, -2187.0 / 6784, 11.0 / 84, 0.0 };
     //오차 계수
     static readonly double[] e = BuildErrCoeff();
+
+    // Dormand–Prince 단계별 시각 계수: k_i는 t + c[i]*h 에서 계산
+    static readonly double[] c = { 0.0, 1.0 / 5.0, 3.0 / 10.0, 4.0 / 5.0, 8.0 / 9.0, 1.0, 1.0 };
+
+    /// <summary>
     //b5-b4
     static double[] BuildErrCoeff()
     {
@@ -58,14 +65,27 @@ public static class IntegratorUtility
     }
 
     /// 고전 RK4. y=(r,v), f(y)=(v, a(r))에 적용
+    public static void RK4(ref Vector3D r, ref Vector3D v, double t,double dt, AccelFuncT a)
+    {
+        double h = 0.5 * dt;
+
+        Vector3D k1r = v; Vector3D k1v = a(t,r);
+        Vector3D k2r = v + k1v * h; Vector3D k2v = a(t+h,r + k1r * h);
+        Vector3D k3r = v + k2v * h; Vector3D k3v = a(t+h,r + k2r * h);
+        Vector3D k4r = v + k3v * dt; Vector3D k4v = a(t + dt, r + k3r * dt);
+
+        double w = dt / 6.0;
+        r += (k1r + k2r * 2.0 + k3r * 2.0 + k4r) * w;
+        v += (k1v + k2v * 2.0 + k3v * 2.0 + k4v) * w;
+    }
     public static void RK4(ref Vector3D r, ref Vector3D v, double dt, AccelFunc a)
     {
         double h = 0.5 * dt;
 
         Vector3D k1r = v; Vector3D k1v = a(r);
-        Vector3D k2r = v + k1v * h; Vector3D k2v = a(r + k1r * h);
-        Vector3D k3r = v + k2v * h; Vector3D k3v = a(r + k2r * h);
-        Vector3D k4r = v + k3v * dt; Vector3D k4v = a(r + k3r * dt);
+        Vector3D k2r = v + k1v * h; Vector3D k2v = a( r + k1r * h);
+        Vector3D k3r = v + k2v * h; Vector3D k3v = a( r + k2r * h);
+        Vector3D k4r = v + k3v * dt; Vector3D k4v = a( r + k3r * dt);
 
         double w = dt / 6.0;
         r += (k1r + k2r * 2.0 + k3r * 2.0 + k4r) * w;
@@ -73,7 +93,7 @@ public static class IntegratorUtility
     }
 
     /// 고전 RK45. y=(r,v), f(y)=(v, a(r))에 적용
-    public static void RK45(ref Vector3D r, ref Vector3D v, ref double h,AccelFunc a, double rTol, double aTol, out bool accepted)
+    public static void RK45(ref Vector3D r, ref Vector3D v, ref double h,double t,AccelFunc a, double rTol, double aTol, out bool accepted)
     {
         Vector3D k1r = v; Vector3D k1v = a(r);
 
@@ -124,6 +144,60 @@ public static class IntegratorUtility
         
        //바닥한계
        if(h<ConstUtility.Epcilon12) throw new InvalidOperationException("RK45: 스텝 크기가 바닥에 닿음");
+    }
+    /// 고전 RK45. y=(r,v), f(y)=(v, a(r))에 적용
+    public static void RK45(ref Vector3D r, ref Vector3D v, ref double h,AccelFunc a,
+                        double rTol, double aTol, out bool accepted)
+    {
+        Vector3D k1r = v; Vector3D k1v = a(r);
+
+        Vector3D r2 = r + (k1r * a21) * h;
+        Vector3D v2 = v + (k1v * a21) * h;
+        Vector3D k2r = v2; Vector3D k2v = a(r2);
+
+        Vector3D r3 = r + (k1r * a3[0] + k2r * a3[1]) * h;
+        Vector3D v3 = v + (k1v * a3[0] + k2v * a3[1]) * h;
+        Vector3D k3r = v3; Vector3D k3v = a(r3);
+
+        Vector3D r4 = r + (k1r * a4[0] + k2r * a4[1] + k3r * a4[2]) * h;
+        Vector3D v4 = v + (k1v * a4[0] + k2v * a4[1] + k3v * a4[2]) * h;
+        Vector3D k4r = v4; Vector3D k4v = a(r4);
+
+        Vector3D r5 = r + (k1r * a5[0] + k2r * a5[1] + k3r * a5[2] + k4r * a5[3]) * h;
+        Vector3D v5 = v + (k1v * a5[0] + k2v * a5[1] + k3v * a5[2] + k4v * a5[3]) * h;
+        Vector3D k5r = v5; Vector3D k5v = a(r5);
+
+        Vector3D r6 = r + (k1r * a6[0] + k2r * a6[1] + k3r * a6[2] + k4r * a6[3] + k5r * a6[4]) * h;
+        Vector3D v6 = v + (k1v * a6[0] + k2v * a6[1] + k3v * a6[2] + k4v * a6[3] + k5v * a6[4]) * h;
+        Vector3D k6r = v6; Vector3D k6v = a(r6);
+
+        //5차해
+        Vector3D rNew = r + (k1r * a7[0] + k3r * a7[2] + k4r * a7[3] + k5r * a7[4] + k6r * a7[5]) * h;
+        Vector3D vNew = v + (k1v * a7[0] + k3v * a7[2] + k4v * a7[3] + k5v * a7[4] + k6v * a7[5]) * h;
+        Vector3D k7r = vNew, k7v = a(rNew);
+
+        //오차
+        Vector3D errR = (k1r * e[0] + k2r * e[1] + k3r * e[2] + k4r * e[3] + k5r * e[4] + k6r * e[5] + k7r * e[6]) * h;
+        Vector3D errV = (k1v * e[0] + k2v * e[1] + k3v * e[2] + k4v * e[3] + k5v * e[4] + k6v * e[5] + k7v * e[6]) * h;
+
+        //오차 정규화
+        double sc1 = aTol + rTol * MathUtility.Max(MathUtility.Abs(r.x), MathUtility.Abs(rNew.x));
+        double sc2 = aTol + rTol * MathUtility.Max(MathUtility.Abs(r.y), MathUtility.Abs(rNew.y));
+        double sc3 = aTol + rTol * MathUtility.Max(MathUtility.Abs(r.z), MathUtility.Abs(rNew.z));
+        double sc4 = aTol + rTol * MathUtility.Max(MathUtility.Abs(v.x), MathUtility.Abs(vNew.x));
+        double sc5 = aTol + rTol * MathUtility.Max(MathUtility.Abs(v.y), MathUtility.Abs(vNew.y));
+        double sc6 = aTol + rTol * MathUtility.Max(MathUtility.Abs(v.z), MathUtility.Abs(vNew.z));
+        double errNorm = MathUtility.Sqrt((errR.x * errR.x) / (sc1 * sc1) + (errR.y * errR.y) / (sc2 * sc2) + (errR.z * errR.z) / (sc3 * sc3)
+                                    + (errV.x * errV.x) / (sc4 * sc4) + (errV.y * errV.y) / (sc5 * sc5) + (errV.z * errV.z) / (sc6 * sc6)) / MathUtility.Sqrt(6.0);
+
+        accepted = errNorm <= 1.0;
+        if (accepted) { r = rNew; v = vNew; }
+
+        //h갱신
+        h = h * MathUtility.Min(5, MathUtility.Max(0.2, 0.9 * MathUtility.Pow(MathUtility.Max(errNorm, 1e-16), -0.2)));
+
+        //바닥한계
+        if (h < ConstUtility.Epcilon12) throw new InvalidOperationException("RK45: 스텝 크기가 바닥에 닿음");
     }
 
     // ═══════════════════════════════════════════════════════

@@ -1,4 +1,3 @@
-using Unity.Android.Gradle.Manifest;
 using static IntegratorUtility;
 
 public sealed class ForceModel
@@ -8,7 +7,9 @@ public sealed class ForceModel
     public double J2 = 1.08262668e-3;
     public Vector3D PoleAxis = new Vector3D(0, 0, 1); // 단위벡터, 검증 단계에선 고정
 
-    public bool UseJ2 = true;
+    public bool useJ2 = true;
+    public bool useMoon = false;//달 사용 여부
+    public bool useSun = false;//태양 사용 여부
 
     public AccelFunc Build()
     {
@@ -16,6 +17,14 @@ public sealed class ForceModel
         // Build() 이후 필드를 바꿔도 이미 만든 델리게이트에는 영향이 없게 하기 위함.
         double mu = Mu, re = Re, j2 = J2;
         Vector3D k = PoleAxis;
+
+        if(!useJ2) return r => Gravity.TwoBody(r, mu);//섭동 사용 X
+
+        if (useMoon)//3체 
+        {
+            double mu3 = 10;
+            return (r,s) => Gravity.TwoBody(r, mu) + Perturbation.J2Accel(r, k, mu, re, j2) + Perturbation.ThirdBodyAccel(r, s, mu3);
+        }
 
         return r => Gravity.TwoBody(r,mu) + Perturbation.J2Accel(r, k, mu, re, j2);
     }
@@ -28,4 +37,5 @@ public sealed class ForceModel
         double rMag = MathUtility.Sqrt(r2);
         return (-mu / (r2 * rMag)) * r;
     }
+
 }
