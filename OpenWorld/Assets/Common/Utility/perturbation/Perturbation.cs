@@ -60,4 +60,21 @@
         double s_accel = mu3 / (s2 * sMag);
         return sr_accel*rRel - s_accel * s;
     }
+
+    /// <summary>
+    /// Battin 정식화
+    /// </summary>
+    /// <returns></returns>
+    public static Vector3D BattinAccel(Vector3D r, Vector3D s, double mu)
+    {
+        double r_s = (r-s).Magnitude();
+        double s_r = (s-r).Magnitude();
+        double rSize = r.Magnitude();
+        double sSize = s.Magnitude();
+
+        double fq = (MathUtility.Pow(r_s,3)/MathUtility.Pow(sSize,3))-1;
+
+        Vector3D r_Fqs = r+fq * s;
+        return -mu*r_Fqs/(MathUtility.Pow(s_r,3));
+    }
 }

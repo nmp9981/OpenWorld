@@ -12,7 +12,7 @@ public class orbutTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        ThirdBodyAccelTest();
+        Example_H();
     }
 
     /// <summary>
@@ -355,5 +355,39 @@ public class orbutTest : MonoBehaviour
         double mu3 = 4902.800066; // 달의 중력상수 [km³/s²]
         Vector3D accel3 = Perturbation.ThirdBodyAccel(new Vector3D(0, 6778, 0), new Vector3D(384400, 0, 0), mu3);
         Debug.Log($"ThirdBodyAccel : {accel3.x} {accel3.y} {accel3.z}");
+    }
+
+    void Example_H()
+    {
+        double leoDist = 6778.14; // LEO 궤도 반지름 [km]
+        double geoDist = 42164; // GEO 궤도 반지름 [km]
+
+        double mSun = 1.988e30; // 태양 질량 [kg]
+        double mMoon = 7.34767309e22; // 달 질량 [kg]
+
+        double G = 6.67430e-20; // 중력 상수 [km³/kg/s²]
+        double mu = G * mSun; // 태양의 중력상수 [km³/s²]
+        double mu2 = G * mMoon;
+        double Mu = 398600.4418; // 지구의 중력상수 [km³/s²]
+
+        Vector3D accel_leo_1 = Gravity.TwoBody(new Vector3D(0, leoDist, 0), Mu);
+        Vector3D accel_geo_1 = Gravity.TwoBody(new Vector3D(0, geoDist, 0), Mu);
+        Debug.Log($"Leo 2체 : {accel_leo_1.x} {accel_leo_1.y} {accel_leo_1.z}");
+        Debug.Log($"Geo 2체 : {accel_geo_1.x} {accel_geo_1.y} {accel_geo_1.z}");
+
+        double j2 = 0.00108263;
+        double j2Mul = -1.5 * j2 * Mu * 6378.1363 * 6378.1363;
+        Debug.Log($"j2 Leo : {j2Mul/MathUtility.Pow(leoDist,4)}");
+        Debug.Log($"j2 Reo : {j2Mul/MathUtility.Pow(geoDist,4)}");
+
+        Vector3D accel_leo_3 = Perturbation.ThirdBodyAccel(new Vector3D(leoDist,0, 0), new Vector3D(384400, 0, 0), mu2);
+        Debug.Log($"moon leo : {accel_leo_3.x} {accel_leo_3.y} {accel_leo_3.z}");
+        Vector3D accel_geo_3 = Perturbation.ThirdBodyAccel(new Vector3D(geoDist,0, 0), new Vector3D(384400, 0, 0), mu2);
+        Debug.Log($"moon geo : {accel_geo_3.x} {accel_geo_3.y} {accel_geo_3.z}");
+
+        Vector3D accel_leo_4 = Perturbation.ThirdBodyAccel(new Vector3D(leoDist,0,0), new Vector3D(149600000, 0, 0), mu);
+        Debug.Log($"sun leo : {accel_leo_4.x} {accel_leo_4.y} {accel_leo_4.z}");
+        Vector3D accel_geo_4 = Perturbation.ThirdBodyAccel(new Vector3D(geoDist, 0,0), new Vector3D(149600000, 0, 0), mu);
+        Debug.Log($"sun geo : {accel_geo_4.x} {accel_geo_4.y} {accel_geo_4.z}");
     }
 }
