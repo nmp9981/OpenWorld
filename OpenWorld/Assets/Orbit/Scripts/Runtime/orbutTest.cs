@@ -12,7 +12,7 @@ public class orbutTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Example_H();
+        
     }
 
     /// <summary>

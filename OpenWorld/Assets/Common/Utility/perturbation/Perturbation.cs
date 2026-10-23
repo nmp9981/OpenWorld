@@ -1,6 +1,15 @@
 ﻿public static class Perturbation
 {
     // a_J2 = -(3/2) J2 μ R² / r^5 · [ (1 - 5 (r·k)²/r²) r + 2 (r·k) k ]
+    /// <summary>
+    /// J2 항에 의한 섭동 가속도
+    /// </summary>
+    /// <param name="r">위치 벡터</param>
+    /// <param name="k">극축</param>
+    /// <param name="mu">천체 중력 상수</param>
+    /// <param name="re">천체 반지름</param>
+    /// <param name="j2">각 천체별 J2상수</param>
+    /// <returns></returns>
     public static Vector3D J2Accel(in Vector3D r, in Vector3D k, double mu, double re, double j2)
     {
         double r2 = Vector3D.Dot(r, r);
@@ -14,12 +23,12 @@
     /// J2 항을 포함한 수정된 에너지
     /// kHat가 시간에 대해 고정일 때만 보존
     /// </summary>
-    /// <param name="r"></param>
-    /// <param name="v"></param>
-    /// <param name="k"></param>
-    /// <param name="mu"></param>
-    /// <param name="re"></param>
-    /// <param name="j2"></param>
+    /// <param name="r">위치 벡터</param>
+    /// <param name="v">속도 벡터</param>
+    /// <param name="k">극축</param>
+    /// <param name="mu">천체 중력 상수</param>
+    /// <param name="re">천체 반지름</param>
+    /// <param name="j2">각 천체별 J2상수</param>
     /// <returns></returns>
     public static double ModifiedEnergy(in Vector3D r, in Vector3D v, in Vector3D k,
                                         double mu, double re, double j2)
@@ -34,9 +43,9 @@
     /// 극축(k) 방향 각운동량 성분 h·k.
     /// J2 퍼텐셜은 k축 대칭이므로 k가 고정일 때 보존된다. (전체 h 벡터는 세차하므로 비보존)
     /// </summary>
-    /// <param name="r"></param>
-    /// <param name="v"></param>
-    /// <param name="k"></param>
+    /// <param name="r">위치 벡터</param>
+    /// <param name="v">속도 벡터</param>
+    /// <param name="k">극축</param>
     /// <returns></returns>
     public static double AxialAngularMomentum(in Vector3D r, in Vector3D v, in Vector3D k)
         => Vector3D.Dot(Vector3D.Cross(r, v), k);
