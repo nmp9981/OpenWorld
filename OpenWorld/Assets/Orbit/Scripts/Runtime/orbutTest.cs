@@ -1,8 +1,9 @@
-using NUnit.Framework;
+ï»¿using NUnit.Framework;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
+using UnityEngine.InputSystem.HID;
 using UnityEngine.VFX;
 using static IntegratorUtility;
 using static UnityEditor.PlayerSettings;
@@ -12,11 +13,11 @@ public class orbutTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+        Example_J();
     }
 
     /// <summary>
-    /// ¿Õº¹ Å×½ºÆ®
+    /// ì™•ë³µ í…ŒìŠ¤íŠ¸
     /// </summary>
     void Connect_State_Element()
     {
@@ -39,7 +40,7 @@ public class orbutTest : MonoBehaviour
     }
 
     /// <summary>
-    /// ÀûºĞ±â ¿¬°á
+    /// ì ë¶„ê¸° ì—°ê²°
     /// </summary>
     void ConnectIntegralTest()
     {
@@ -70,7 +71,7 @@ public class orbutTest : MonoBehaviour
         }
     }
     /// <summary>
-    /// »óÅÂº¤ÅÍ -> ±Ëµµ¿ä¼Ò
+    /// ìƒíƒœë²¡í„° -> ê¶¤ë„ìš”ì†Œ
     /// </summary>
     OrbitalElements StateVector_To_OrbitElement(StateVector state, double mu)
     {
@@ -113,7 +114,7 @@ public class orbutTest : MonoBehaviour
         return newOb;
     }
     /// <summary>
-    /// ±Ëµµ¿ä¼Ò -> »óÅÂº¤ÅÍ
+    /// ê¶¤ë„ìš”ì†Œ -> ìƒíƒœë²¡í„°
     /// </summary>
     /// <param name="orbit"></param>
     /// <returns></returns>
@@ -135,7 +136,7 @@ public class orbutTest : MonoBehaviour
     }
 
     /// <summary>
-    /// ¿¹Á¦ 4-9
+    /// ì˜ˆì œ 4-9
     /// </summary>
     void Example4_9()
     {
@@ -151,13 +152,13 @@ public class orbutTest : MonoBehaviour
         Debug.Log($"argp : {elements.argp * ConstUtility.Rad2Deg}");
         Debug.Log($"nu : {elements.nu * ConstUtility.Rad2Deg}");
 
-        //Àå¹İ°æ
+        //ì¥ë°˜ê²½
         double a = elements.p / (1 - elements.e * elements.e);
         Debug.Log($"a : {a}");
-        //ÁÖ±â
+        //ì£¼ê¸°
         double T = 2 * ConstUtility.PI * MathUtility.Sqrt(a * a * a / mu);
         Debug.Log($"T : {T}");
-        //ÃÊ´ç °¢µµ
+        //ì´ˆë‹¹ ê°ë„
         double meanMotion = 2 * ConstUtility.PI / T;
         Debug.Log($"meanMotion : {meanMotion}");
         //E0
@@ -169,7 +170,7 @@ public class orbutTest : MonoBehaviour
         //tf
         double tf = t1 + 345600;
         Debug.Log($"tf : {tf}");
-        //Ã¹ ±Ëµµnp
+        //ì²« ê¶¤ë„np
         double np = tf / T;
         double t32 = (np-MathUtility.Floor(np)) * T;
         double M32 = meanMotion * t32;
@@ -180,20 +181,20 @@ public class orbutTest : MonoBehaviour
         double nu32 = Anomaly.EccentricToTrue(E32, elements.e);
         Debug.Log($"nu32 : {nu32}");
 
-        //À§¼º
+        //ìœ„ì„±
         double r = elements.p / (1 + elements.e * MathUtility.Cos(nu32));
         Vector3D rx =new Vector3D( r * MathUtility.Cos(nu32),r*MathUtility.Sin(nu32),0);
         Vector3D vx = new Vector3D(-MathUtility.Sqrt(mu/elements.p) * MathUtility.Sin(nu32), MathUtility.Sqrt(mu / elements.p) * (elements.e + MathUtility.Cos(nu32)), 0);
         Debug.Log($"rx {rx.x} {rx.y} {rx.z}");
         Debug.Log($"vx {vx.x} {vx.y} {vx.z}");
 
-        //½Â±³Á¡ Àû°æ º¯È­·®
+        //ìŠ¹êµì  ì ê²½ ë³€í™”ëŸ‰
         double deltaRAAN = -1.5*MathUtility.Cos(elements.i)*(MathUtility.Sqrt(mu)*0.00108263*6378*6378)
             /((1-elements.e*elements.e)*(1 - elements.e * elements.e)*MathUtility.Pow(a,3.5));
         Debug.Log($"deltaRAAN : {deltaRAAN}");
         double RAAN = (elements.raan + deltaRAAN * 345600);
         Debug.Log($"RAAN : {RAAN}");
-        //±ÙÁöÁ¡Æí°¢
+        //ê·¼ì§€ì í¸ê°
         double deltaArgp = 0.75 * (4 - 5 * MathUtility.Sin(elements.i) * MathUtility.Sin(elements.i)) *
             (MathUtility.Sqrt(mu) * 0.00108263 * 6378 * 6378) / ((1 - elements.e * elements.e) * (1 - elements.e * elements.e) * MathUtility.Pow(a, 3.5));
         Debug.Log($"deltaArgp : {deltaArgp}");
@@ -211,7 +212,7 @@ public class orbutTest : MonoBehaviour
         Example4_92(rxNew, vxNew);
     }
     /// <summary>
-    /// ¿¹Á¦ 4-9
+    /// ì˜ˆì œ 4-9
     /// </summary>
     void Example4_92(Vector3D rx, Vector3D vx)
     {
@@ -226,7 +227,7 @@ public class orbutTest : MonoBehaviour
         var v0 = state0.Velocity;
         
         double dt = 0.05;
-        double tEnd = 345600;//96½Ã°£
+        double tEnd = 345600;//96ì‹œê°„
         int step = 0;
 
         double t = 0;
@@ -244,8 +245,8 @@ public class orbutTest : MonoBehaviour
             }
         }
         Debug.Log($"step {step}");
-        Debug.Log($"rxNew Â÷ÀÌ : {r0.x-rx.x} {r0.y-rx.y} {r0.z - rx.z}");
-        Debug.Log($"vxNew Â÷ÀÌ : {v0.x-vx.x} {v0.y-vx.y} {v0.z-vx.z}");
+        Debug.Log($"rxNew ì°¨ì´ : {r0.x-rx.x} {r0.y-rx.y} {r0.z - rx.z}");
+        Debug.Log($"vxNew ì°¨ì´ : {v0.x-vx.x} {v0.y-vx.y} {v0.z-vx.z}");
 
         //RSW
         Vector3D rHat = r0.Normalized();
@@ -257,21 +258,21 @@ public class orbutTest : MonoBehaviour
         double deltaS = Vector3D.Dot(r0 - rx, sHat);
         double deltaW = Vector3D.Dot(r0 - rx,wHat);
         double rsw = MathUtility.Sqrt(deltaR*deltaR + deltaS*deltaS+deltaW*deltaW);
-        Debug.Log($"RSW °ª {deltaR} {deltaS} {deltaW}");
+        Debug.Log($"RSW ê°’ {deltaR} {deltaS} {deltaW}");
         Debug.Log($"RSW {rsw} {(r0 - rx).Magnitude()}");
     }
     /// <summary>
-    /// °úÁ¦ F
+    /// ê³¼ì œ F
     /// </summary>
     void TaskF()
     {
-        //ÇØ¼®½Ä
+        //í•´ì„ì‹
         double i = 51.6 *ConstUtility.Deg2Rad;double e = 0;double a = 6778;double Mu = 398600.4418;
         double deltaRAAN = -1.5 * MathUtility.Cos(i) * (MathUtility.Sqrt(Mu) * 0.00108263 * 6378.1363 * 6378.1363)
             / ((1 - e*e) * (1 - e*e) * MathUtility.Pow(a, 3.5));
         Debug.Log($"deltaRAAN : {deltaRAAN}");
 
-        //ÀûºĞ±â
+        //ì ë¶„ê¸°
         double rTol = 1e-10, aTol = 1e-10;
         Vector3D K = new Vector3D(0, 0, 1);
         AccelFunc twoBody = r => Gravity.TwoBody(r, Mu) + Perturbation.J2Accel(r, K, Mu, 6378.1363, 0.00108262668);
@@ -291,7 +292,7 @@ public class orbutTest : MonoBehaviour
         var v0 = state0.Velocity;
 
         double dt = 0.05;
-        double tEnd = 345600;//96½Ã°£
+        double tEnd = 345600;//96ì‹œê°„
         int step = 0;
         double stepRAAN = 0;
 
@@ -339,41 +340,41 @@ public class orbutTest : MonoBehaviour
         }
         for (int k = 1; k < RAANList.Count; k++)
         {
-            Debug.Log(k + "¹øÂ° RAAN : " + RAANList[k].Item2);
+            Debug.Log(k + "ë²ˆì§¸ RAAN : " + RAANList[k].Item2);
             double delta = RAANList[k].Item2 - RAANList[k - 1].Item2;
             avgDeltaRAAN += delta;
             stepRAAN+= (RAANList[k].Item1 - RAANList[k - 1].Item1);
         }
 
-        Debug.Log($"ÃÖÁ¾ Æò±Õ deltaRAAN {avgDeltaRAAN/stepRAAN}");
+        Debug.Log($"ìµœì¢… í‰ê·  deltaRAAN {avgDeltaRAAN/stepRAAN}");
     }
     /// <summary>
     /// ThirdBodyAccelTest 
     /// </summary>
     void ThirdBodyAccelTest()
     {
-        double mu3 = 4902.800066; // ´ŞÀÇ Áß·Â»ó¼ö [km©ø/s©÷]
+        double mu3 = 4902.800066; // ë‹¬ì˜ ì¤‘ë ¥ìƒìˆ˜ [kmÂ³/sÂ²]
         Vector3D accel3 = Perturbation.ThirdBodyAccel(new Vector3D(0, 6778, 0), new Vector3D(384400, 0, 0), mu3);
         Debug.Log($"ThirdBodyAccel : {accel3.x} {accel3.y} {accel3.z}");
     }
 
     void Example_H()
     {
-        double leoDist = 6778.14; // LEO ±Ëµµ ¹İÁö¸§ [km]
-        double geoDist = 42164; // GEO ±Ëµµ ¹İÁö¸§ [km]
+        double leoDist = 6778.14; // LEO ê¶¤ë„ ë°˜ì§€ë¦„ [km]
+        double geoDist = 42164; // GEO ê¶¤ë„ ë°˜ì§€ë¦„ [km]
 
-        double mSun = 1.988e30; // ÅÂ¾ç Áú·® [kg]
-        double mMoon = 7.34767309e22; // ´Ş Áú·® [kg]
+        double mSun = 1.988e30; // íƒœì–‘ ì§ˆëŸ‰ [kg]
+        double mMoon = 7.34767309e22; // ë‹¬ ì§ˆëŸ‰ [kg]
 
-        double G = 6.67430e-20; // Áß·Â »ó¼ö [km©ø/kg/s©÷]
-        double mu = G * mSun; // ÅÂ¾çÀÇ Áß·Â»ó¼ö [km©ø/s©÷]
+        double G = 6.67430e-20; // ì¤‘ë ¥ ìƒìˆ˜ [kmÂ³/kg/sÂ²]
+        double mu = G * mSun; // íƒœì–‘ì˜ ì¤‘ë ¥ìƒìˆ˜ [kmÂ³/sÂ²]
         double mu2 = G * mMoon;
-        double Mu = 398600.4418; // Áö±¸ÀÇ Áß·Â»ó¼ö [km©ø/s©÷]
+        double Mu = 398600.4418; // ì§€êµ¬ì˜ ì¤‘ë ¥ìƒìˆ˜ [kmÂ³/sÂ²]
 
         Vector3D accel_leo_1 = Gravity.TwoBody(new Vector3D(0, leoDist, 0), Mu);
         Vector3D accel_geo_1 = Gravity.TwoBody(new Vector3D(0, geoDist, 0), Mu);
-        Debug.Log($"Leo 2Ã¼ : {accel_leo_1.x} {accel_leo_1.y} {accel_leo_1.z}");
-        Debug.Log($"Geo 2Ã¼ : {accel_geo_1.x} {accel_geo_1.y} {accel_geo_1.z}");
+        Debug.Log($"Leo 2ì²´ : {accel_leo_1.x} {accel_leo_1.y} {accel_leo_1.z}");
+        Debug.Log($"Geo 2ì²´ : {accel_geo_1.x} {accel_geo_1.y} {accel_geo_1.z}");
 
         double j2 = 0.00108263;
         double j2Mul = -1.5 * j2 * Mu * 6378.1363 * 6378.1363;
@@ -389,5 +390,135 @@ public class orbutTest : MonoBehaviour
         Debug.Log($"sun leo : {accel_leo_4.x} {accel_leo_4.y} {accel_leo_4.z}");
         Vector3D accel_geo_4 = Perturbation.ThirdBodyAccel(new Vector3D(geoDist, 0,0), new Vector3D(149600000, 0, 0), mu);
         Debug.Log($"sun geo : {accel_geo_4.x} {accel_geo_4.y} {accel_geo_4.z}");
+    }
+
+    /// <summary>
+    /// Jë²ˆ
+    /// </summary>
+    void Example_J()
+    {
+        double[] jds = { 2461119.5, 2461212.5, 2461395.5 };
+        Vector3D[] sunRef =
+{
+    new Vector3D( 1.489401131716068E+08, -2.324665438227833E+06, -1.008358503810866E+06),
+    new Vector3D( 1.861132816153773E+06,  1.394663346378670E+08,  6.045597675352052E+07),
+    new Vector3D(-3.231815235322593E+06, -1.350004128083011E+08, -5.851935489929536E+07),
+};
+
+        Vector3D[] moonRef =
+        {
+    new Vector3D( 3.625588247140512E+05,  5.947187892445076E+04,  4.579577064082865E+04),
+    new Vector3D(-3.750380930516362E+05,  7.507930975445612E+04,  2.182648630749888E+04),
+    new Vector3D( 2.545251257885644E+05,  2.278400541710348E+05,  1.342073709888459E+05),
+};
+        
+        for (int i=0;i<jds.Length; i++)
+        {
+            double jd = jds[i];
+            Vector3D sun = Example_J_Sun(jd);
+            Vector3D moon = Example_J_Moon(jd);
+
+            //ê±°ë¦¬ ë¹„êµ
+            double sunDist = (sun - sunRef[i]).Magnitude();
+            double moonDist = (moon - moonRef[i]).Magnitude();
+
+            //ê°ë„ ë¹„êµ
+            double cross = Vector3D.Cross(sun, sunRef[i]).Magnitude();
+            double dot = Vector3D.Dot(sun, sunRef[i]);
+            double angle = MathUtility.ArkTan2(cross, dot) * ConstUtility.Rad2Deg;
+
+            Debug.Log($"Jë²ˆ {i + 1} íƒœì–‘ ê±°ë¦¬ : {sunDist} ê°ë„ : {angle}");
+
+            cross = Vector3D.Cross(moon, moonRef[i]).Magnitude();
+            dot = Vector3D.Dot(moon, moonRef[i]);
+            angle = MathUtility.ArkTan2(cross, dot) * ConstUtility.Rad2Deg;
+            Debug.Log($"Jë²ˆ {i + 1} ë‹¬ ê±°ë¦¬ : {moonDist} ê°ë„ : {angle}");
+        }
+    }
+
+    /// <summary>
+    /// Jë²ˆ íƒœì–‘
+    /// </summary>
+    /// <param name="jd"></param>
+    Vector3D Example_J_Sun(double jd)
+    {
+        double AU = 149597870.7;
+
+        double T = (jd - 2451545.0) / 36525.0;
+
+        // 1. Table 8.1 Earth í–‰ (ê°ë„ ë³€í™”ìœ¨ ë‹¨ìœ„ëŠ” "/Cy â†’ /3600)
+        double a = (1.00000011 - 0.00000005 * T) * AU;
+        double e = 0.01671022 - 0.00003804 * T;
+        double varpi = 102.94719 + (1198.28 / 3600.0) * T;        // ê·¼ì¼ì  ê²½ë„ Ï–
+        double L = 100.46435 + (129597740.63 / 3600.0) * T;   // í‰ê·  ê²½ë„
+
+        // 2. í‰ê· ê·¼ì ì´ê° M = L âˆ’ Ï–, 0~360 ì •ê·œí™”
+        double M = (L - varpi) % 360.0;
+        if (M < 0) M += 360.0;
+
+        //3. ì§„ê·¼ì ì´ê°
+        double E = Anomaly.MeanToEccentric(M * ConstUtility.Deg2Rad, e);
+        double nu = Anomaly.EccentricToTrue(E, e);
+
+        //4. ì¼ì‹¬ ì§€êµ¬ìœ„ì¹˜
+        double r = a * (1.0 - e * MathUtility.Cos(E));
+        double lon = nu + varpi * ConstUtility.Deg2Rad;   // í™©ê²½
+        double xEcl = r * MathUtility.Cos(lon);
+        double yEcl = r * MathUtility.Sin(lon);
+        double zEcl = 0.0;
+
+        //5. ì§€ì‹¬ ë³€í™˜
+        xEcl = -xEcl;
+        yEcl = -yEcl;
+        zEcl = -zEcl;
+
+        //6. í™©ë„ -> ì ë„ íšŒì „
+        double eps = 23.439291*ConstUtility.Deg2Rad; // ì ê²½
+        double x = xEcl;
+        double y = yEcl * MathUtility.Cos(eps) - zEcl * MathUtility.Sin(eps);
+        double z = yEcl * MathUtility.Sin(eps) + zEcl * MathUtility.Cos(eps);
+
+        return new Vector3D(x, y, z);
+    }
+
+    /// <summary>
+    /// Jë²ˆ ë‹¬
+    /// </summary>
+    /// <param name="jd"></param>
+    Vector3D Example_J_Moon(double jd)
+    {
+        double T = (jd - 2451545.0) / 36525.0;
+       
+        double R = 6378.1363;
+
+        double lambda = 218.32+481267.881*T+ 6.29 * MathUtility.Sin((135.0 + 477198.87 * T)*ConstUtility.Deg2Rad) - 1.27 * MathUtility.Sin((259.3 - 413335.36 * T) * ConstUtility.Deg2Rad)
+            + 0.66 * MathUtility.Sin((235.7 + 890534.22 * T)*ConstUtility.Deg2Rad) + 0.21 * MathUtility.Sin((269.9 + 954397.74 * T) * ConstUtility.Deg2Rad)
+            - 0.19 * MathUtility.Sin((357.5 + 35999.05 * T) * ConstUtility.Deg2Rad) - 0.11 * MathUtility.Sin((186.5 + 966404.03 * T) * ConstUtility.Deg2Rad);
+
+        lambda = lambda % 360.0;
+        if(lambda < 0) lambda += 360.0;
+
+        double beta = 5.13 * MathUtility.Sin((93.3 + 483202.02 * T) * ConstUtility.Deg2Rad) + 0.28 * MathUtility.Sin((228.2 + 960400.89 * T) * ConstUtility.Deg2Rad)
+            - 0.28 * MathUtility.Sin((318.3 + 6003.15 * T) * ConstUtility.Deg2Rad) - 0.17 * MathUtility.Sin((217.6 - 407332.21 * T) * ConstUtility.Deg2Rad);
+
+        double P = 0.9508+ 0.0518 * MathUtility.Cos((135.0 + 477198.87 * T) * ConstUtility.Deg2Rad) + 0.0095 * MathUtility.Cos((259.3 - 413335.36 * T) * ConstUtility.Deg2Rad)
+            + 0.0078 * MathUtility.Cos((235.7 + 890534.22 * T) * ConstUtility.Deg2Rad) + 0.0028 * MathUtility.Cos((269.9 + 954397.74 * T) * ConstUtility.Deg2Rad);
+
+        double r = R/MathUtility.Sin(P*ConstUtility.Deg2Rad);
+
+        //êµ¬ë©´ í™©ë„->ë²¡í„°
+        lambda = lambda * ConstUtility.Deg2Rad;
+        beta = beta * ConstUtility.Deg2Rad;
+        double xEcl = r * MathUtility.Cos(lambda) * MathUtility.Cos(beta);
+        double yEcl = r * MathUtility.Sin(lambda) * MathUtility.Cos(beta);
+        double zEcl = r * MathUtility.Sin(beta);
+
+        //í™©ë„ -> ì ë„
+        double eps = (23.439291 -0.0130043*T)*ConstUtility.Deg2Rad; // ì ê²½
+        double x = xEcl;
+        double y = yEcl * MathUtility.Cos(eps) - zEcl * MathUtility.Sin(eps);
+        double z = yEcl * MathUtility.Sin(eps) + zEcl * MathUtility.Cos(eps);
+
+        return new Vector3D(x, y, z);
     }
 }

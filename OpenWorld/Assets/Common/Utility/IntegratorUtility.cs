@@ -10,6 +10,7 @@ public static class IntegratorUtility
 
     /// <summary>다물체용 가속도 함수: positions를 읽어 accelOut을 전부 덮어쓴다.</summary>
     public delegate void AccelFuncN(Vector3D[] positions, Vector3D[] accelOut);
+    public delegate void AccelFuncNT(double t,Vector3D[] positions, Vector3D[] accelOut);
 
     /// <summary>
     /// RK45용 상수 계수. 7단계 Runge-Kutta-Fehlberg (RKF45) Butcher tableau.
@@ -294,6 +295,52 @@ public static class IntegratorUtility
             vel[i] += (k1v[i] + k2v[i] * 2.0 + k3v[i] * 2.0 + k4v[i]) * w;
         }
     }
+
+    public static void RK4(ref Vector3D[] pos, ref Vector3D[] vel, double t, double dt, AccelFuncNT a, Vector3D[] k1v, Vector3D[] k2v, Vector3D[] k3v, Vector3D[] k4v,
+                       Vector3D[] tmpPos,
+                       Vector3D[] k2r, Vector3D[] k3r, Vector3D[] k4r)
+    {
+
+        int n = pos.Length;
+        double h = 0.5 * dt;
+
+        // k1: 현재 상태.  k1r = vel,  k1v = a(pos)
+        Vector3D[] k1r = vel;
+        a(t, pos, k1v);
+
+        // k2: 전 물체를 k1 방향으로 반 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + vel[i] * h;      // pos + h·k1r
+            k2r[i] = vel[i] + k1v[i] * h;
+        }
+        a(t+h,tmpPos, k2v);
+
+        // k3: 전 물체를 k2 방향으로 반 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + k2r[i] * h;      // pos + h·k2r
+            k3r[i] = vel[i] + k2v[i] * h;
+        }
+        a(t+h,tmpPos, k3v);
+
+        // k4: 전 물체를 k3 방향으로 한 스텝 옮긴 구성에서 평가
+        for (int i = 0; i < n; i++)
+        {
+            tmpPos[i] = pos[i] + k3r[i] * dt;     // pos + dt·k3r
+            k4r[i] = vel[i] + k3v[i] * dt;
+        }
+        a(t + dt, tmpPos, k4v);
+
+        // 합성 1:2:2:1.  k1r = vel
+        double w = dt / 6.0;
+        for (int i = 0; i < n; i++)
+        {
+            pos[i] += (vel[i] + k2r[i] * 2.0 + k3r[i] * 2.0 + k4r[i]) * w;
+            vel[i] += (k1v[i] + k2v[i] * 2.0 + k3v[i] * 2.0 + k4v[i]) * w;
+        }
+    }
+
     /// <summary>
     /// 고전 RK45 — 다물체 버전. 7단계 Runge-Kutta-Fehlberg (RKF45) Butcher tableau.
     /// </summary>
