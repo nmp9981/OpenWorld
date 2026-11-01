@@ -13,7 +13,7 @@ public class orbutTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Example_J();
+        Example4_9();
     }
 
     /// <summary>
@@ -231,7 +231,8 @@ public class orbutTest : MonoBehaviour
         int step = 0;
 
         double t = 0;
-        
+        double avgA = 0;
+
         while (t < tEnd)
         {
             if (t + dt > tEnd) dt = tEnd - t;
@@ -240,11 +241,15 @@ public class orbutTest : MonoBehaviour
 
             if(ok)
             {
+                double a = 1.0 / (2.0/r0.Magnitude()-v0.SqrMagnitude()/Mu);
+                avgA += (a*hUsed);
                 t += hUsed;
                 step++;
             }
         }
         Debug.Log($"step {step}");
+        Debug.Log($"평균 A : {avgA/tEnd}");
+        Debug.Log($"rxNew : {rx.x} {rx.y} {rx.z}");
         Debug.Log($"rxNew 차이 : {r0.x-rx.x} {r0.y-rx.y} {r0.z - rx.z}");
         Debug.Log($"vxNew 차이 : {v0.x-vx.x} {v0.y-vx.y} {v0.z-vx.z}");
 
@@ -521,4 +526,5 @@ public class orbutTest : MonoBehaviour
 
         return new Vector3D(x, y, z);
     }
+
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using Unity.Collections;
 using Unity.VisualScripting;
 
 public static class IntegratorUtility
@@ -64,6 +65,14 @@ public static class IntegratorUtility
         Vector3D a1 = a(r);
         v += (a0 + a1) * (0.5 * dt);
     }
+    /// r ← r + v·dt + ½a₀dt²,  v ← v + ½(a₀+a₁)dt
+    public static void VelocityVerlet(ref Vector3D r, ref Vector3D v,double dt, double t, AccelFuncT a)
+    {
+        Vector3D a0 = a(t,r);
+        r += v * dt + a0 * (0.5 * dt * dt);
+        Vector3D a1 = a(t+dt,r);
+        v += (a0 + a1) * (0.5 * dt);
+    }
 
     /// 고전 RK4. y=(r,v), f(y)=(v, a(r))에 적용
     public static void RK4(ref Vector3D r, ref Vector3D v, double t,double dt, AccelFuncT a)
@@ -94,34 +103,38 @@ public static class IntegratorUtility
     }
 
     /// 고전 RK45. y=(r,v), f(y)=(v, a(r))에 적용
-    public static void RK45(ref Vector3D r, ref Vector3D v, ref double h,double t,AccelFunc a, double rTol, double aTol, out bool accepted)
+    public static void RK45(ref Vector3D r, ref Vector3D v, ref double h, double t,AccelFuncT a, double rTol, double aTol, out bool accepted, out double hused)
     {
-        Vector3D k1r = v; Vector3D k1v = a(r);
+        double[] c = { 0.0, 1.0 / 5.0, 3.0 / 10.0, 4.0 / 5.0, 8.0 / 9.0, 1.0, 1.0 };
+
+        hused = h;
+
+        Vector3D k1r = v; Vector3D k1v = a(t + c[0]*h,r);
 
         Vector3D r2 = r + (k1r * a21)*h;
         Vector3D v2 = v + (k1v * a21)*h;
-        Vector3D k2r = v2; Vector3D k2v = a(r2);
+        Vector3D k2r = v2; Vector3D k2v = a(t + c[1] * h, r2);
 
         Vector3D r3 = r + (k1r * a3[0] + k2r * a3[1]) * h;
         Vector3D v3 = v + (k1v * a3[0] + k2v * a3[1]) * h;
-        Vector3D k3r = v3; Vector3D k3v = a(r3);
+        Vector3D k3r = v3; Vector3D k3v = a(t + c[2] * h, r3);
 
         Vector3D r4 = r + (k1r * a4[0] + k2r * a4[1] + k3r * a4[2]) * h;
         Vector3D v4 = v + (k1v * a4[0] + k2v * a4[1] + k3v * a4[2]) * h;
-        Vector3D k4r = v4; Vector3D k4v = a(r4);
+        Vector3D k4r = v4; Vector3D k4v = a(t + c[3] * h, r4);
 
         Vector3D r5 = r + (k1r * a5[0] + k2r * a5[1] + k3r * a5[2] + k4r * a5[3]) * h;
         Vector3D v5 = v + (k1v * a5[0] + k2v * a5[1] + k3v * a5[2] + k4v * a5[3]) * h;
-        Vector3D k5r = v5; Vector3D k5v = a(r5);
+        Vector3D k5r = v5; Vector3D k5v = a(t + c[4] * h, r5);
 
         Vector3D r6 = r + (k1r * a6[0] + k2r * a6[1] + k3r * a6[2] + k4r * a6[3] + k5r * a6[4]) * h;
         Vector3D v6 = v + (k1v * a6[0] + k2v * a6[1] + k3v * a6[2] + k4v * a6[3] + k5v * a6[4]) * h;
-        Vector3D k6r = v6; Vector3D k6v = a(r6);
+        Vector3D k6r = v6; Vector3D k6v = a(t + c[5] * h, r6);
 
         //5차해
         Vector3D rNew = r + (k1r * a7[0] + k3r * a7[2] + k4r * a7[3] + k5r * a7[4] + k6r * a7[5]) * h;
         Vector3D vNew = v + (k1v * a7[0] + k3v * a7[2] + k4v * a7[3] + k5v * a7[4] + k6v * a7[5]) * h;
-        Vector3D k7r = vNew, k7v = a(rNew);
+        Vector3D k7r = vNew, k7v = a(t + c[6] * h, rNew);
 
         //오차
         Vector3D errR = (k1r * e[0] + k2r * e[1] + k3r * e[2] + k4r * e[3] + k5r * e[4] + k6r * e[5] + k7r * e[6]) * h;
