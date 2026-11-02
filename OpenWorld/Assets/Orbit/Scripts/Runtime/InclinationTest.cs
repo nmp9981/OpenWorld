@@ -1,31 +1,38 @@
 ﻿using UnityEngine;
+using System.IO;
 using static IntegratorUtility;
-using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
 public class InclinationTest : MonoBehaviour
 {
-    double Mu = 398600.4418;   // 지구
-    double Mu1 = 1.32712440018e11;   // 태양
-    double Mu2 = 4902.800066;   // 달
-    double omega = 2 * ConstUtility.PI / 86400.0;   // 지구 자전각속도
+    double T0;
+    const double Arcsec2Rad = ConstUtility.Deg2Rad / 3600.0;
+    const double JD0 = 2461041.5;   // 2026-01-01 0시 TT
+    const double MuE = 398600.4418, MuSun = 1.32712440018e11, MuMoon = 4902.800066;
 
-    Vector3D EarthPos(double t)
-    {
-        double theta = 2 * ConstUtility.PI * t / 86400.0;
-        return new Vector3D(-149597870.7 * MathUtility.Cos(theta), -149597870.7 * MathUtility.Sin(theta), 0);
-    }
+    bool UseMoon = true;
+    bool UseSun = true;
+
+    string path = "D:\\Math\\Data\\Memo.txt";
 
     // 위성 가속도: 질량중심은 관성계라 간접항 없음
-    Vector3D AccelK(double t, Vector3D r)
+    Vector3D AccelL(double t, Vector3D r)
     {
-        Vector3D earth = Gravity.TwoBody(r, Mu); 
-        Vector3D j2= Perturbation.J2Accel(r, new Vector3D(0, 0, 1), Mu, 6378.137, 1.08262668e-3);
+        double jd = JD0 + t / 86400.0;
 
-        //시작 JD를 넣는다.
-        Vector3D sun = SunPos(t);
-        Vector3D moon = MoonPos(t);
+        Vector3D earth = Gravity.TwoBody(r, MuE); 
+        Vector3D j2= Perturbation.J2Accel(r, new Vector3D(0, 0, 1), MuE, 6378.137, 1.08262668e-3);
 
-        return earth + j2 + sun + moon;
+        Vector3D a = earth + j2;
+        if (UseMoon) a += Perturbation.ThirdBodyAccel(r, MoonPos(jd), MuMoon);
+
+        //세차행렬 -> 좌표변환
+        double ζ = (2306.2181* T0 + 0.30188* T0*T0 +0.017998 *T0*T0*T0)*Arcsec2Rad;
+        double z = (2306.2181 *T0 + 1.09468 * T0 * T0 + 0.018203 * T0 * T0 * T0) * Arcsec2Rad;
+        double θ = (2004.3109* T0 - 0.42665 * T0 * T0 - 0.041833 * T0 * T0 * T0) * Arcsec2Rad;
+        Matrix3x3D precession = Matrix3x3D.R3Frame(-z) * Matrix3x3D.R2Frame(θ) * Matrix3x3D.R3Frame(-ζ);
+        if (UseSun) a += Perturbation.ThirdBodyAccel(r, precession*SunPos(jd), MuSun);
+
+        return a;
     }
 
     /// <summary>
@@ -115,56 +122,43 @@ public class InclinationTest : MonoBehaviour
     }
 
 
-    /// <summary>
-    /// 자코비 계산
-    /// </summary>
-    /// <param name="t"></param>
-    /// <param name="r"></param>
-    /// <param name="v"></param>
-    /// <returns></returns>
-    double Jacobi(double t, Vector3D r, Vector3D v)
-    {
-        Vector3D omegaCrossR = new Vector3D(-omega * r.y, omega * r.x, 0);
-        Vector3D vRot = v - omegaCrossR;
-        double d1 = (r - EarthPos(t)).Magnitude();
-        double d2 = (r - MoonPos(t)).Magnitude();
-        return 0.5 * vRot.SqrMagnitude() - 0.5 * omega * omega * (r.x * r.x + r.y * r.y)
-               - Mu1 / d1 - Mu2 / d2;
-    }
-
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        AccelFuncT accel = AccelK;
-        // 초기조건: 지구 중심에서 고도 400 km 원궤도 + 지구 자체의 관성 속도
-        Vector3D earth0 = Vector3D.Zero;
-        Vector3D earthVel0 = new Vector3D(-omega * earth0.y, omega * earth0.x, 0);
-        Vector3D r = earth0 + new Vector3D(6778, 0, 0);
-        Vector3D v = earthVel0 + 1.1 * new Vector3D(0, MathUtility.Sqrt(Mu1 / 6778), 0);
+        T0 = (JD0 - 2451545.0) / 36525.0;
 
-        double dt = 10.0;
+        AccelFuncT accel = AccelL;
+        // GEO위성
+        Vector3D r = new Vector3D(42164, 0, 0);
+        Vector3D v =new Vector3D(0, MathUtility.Sqrt(MuE / 42164), 0);
+        double prevZ = 0;
+
+        double dt = 300.0;
         int steps = (int)(86400 / dt);   // 1일
-        double c0 = Jacobi(0, r, v);
-        double maxRel = 0;
         double t = 0;
 
-        CentralBody earth = new CentralBody(Mu, 6378.137, 1.08262668e-3);
+        CentralBody earth = new CentralBody(MuE, 6378.137, 1.08262668e-3);
 
         for (int i = 0; i < steps * 365; i++)
         {
-            IntegratorUtility.VelocityVerlet(ref r, ref v, dt, t, accel);
+            IntegratorUtility.RK4(ref r, ref v, t,dt, accel);
             t += dt;
-            double c = Jacobi(t, r, v);
-            double rel = MathUtility.Abs((c - c0) / c0);
-            if (rel > maxRel) maxRel = rel;
-
-            StateVector state = new StateVector(r, v);
-            OrbitalElements element = OrbitConverter.ToElements(earth, state);
-
-            if (element.raan==0)//승교점이 0이면 경사각만 출력
+           
+            if (prevZ<0 && r.z>0)//승교점이 0이면 경사각만 출력
             {
-                Debug.Log($"경사각 = {element.i}");
+                StateVector state = new StateVector(r, v);
+                OrbitalElements element = OrbitConverter.ToElements(earth, state);
+
+                double angle = element.i * ConstUtility.Rad2Deg;
+                Debug.Log($"경사각 = {angle}");
+
+                // 두 번째 인자(append)가 true면 이어쓰기, false면 덮어쓰기
+                using (StreamWriter writer = new StreamWriter(path, append: true))
+                {
+                    writer.WriteLine(angle);
+                }
             }
+            prevZ = r.z;
         }
     }
 }
