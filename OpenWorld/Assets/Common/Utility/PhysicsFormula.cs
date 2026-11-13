@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Resources;
 using System.Transactions;
 using Unity.Collections;
+using Unity.VisualScripting;
 
 public static class PhysicsFormula
 {
@@ -85,5 +86,79 @@ public static class PhysicsFormula
         newDerived.d_angleVelocity2 = upperAccel2 / down2;
         newDerived.d_angle2 = state.angleVelocity2;
         return newDerived;
+    }
+
+    /// <summary>
+    /// 밀도 구하기
+    /// </summary>
+    /// <param name="H"></param>
+    /// <returns></returns>
+    public static double Rho(double height)
+    {
+        double p0=1.0;
+        double h0=1.0;
+        double H = 1.0;
+
+        if (height < 250)//예외
+        {
+            throw new ArgumentOutOfRangeException("범위 초과");
+        }
+        else if (height >= 250 && height < 300)
+        {
+            p0 = 7.248e-11;
+            h0 = 250;
+            H = 45.546;
+        }
+        else if (height >= 300 && height < 350)
+        {
+            p0 = 2.418e-11;
+            h0 = 300;
+            H = 53.628;
+        }
+        else if (height >= 350 && height < 400)
+        {
+            p0 = 9.518e-12;
+            h0 = 350;
+            H = 53.298;
+        }
+        else if (height >= 400 && height < 450)
+        {
+            p0 = 3.725e-12;
+            h0 = 400;
+            H = 58.515;
+        }
+        else if (height >= 450 && height < 500)
+        {
+            p0 = 1.585e-12;
+            h0 = 450;
+            H = 60.828;
+        }
+        else if (height >= 500 && height < 600)
+        {
+            p0 = 6.967e-13;
+            h0 = 500;
+            H = 63.822;
+        }
+        else if (height >= 600 && height < 700)
+        {
+            p0 = 1.454e-13;
+            h0 = 600;
+            H = 71.835;
+        }
+        else if (height >= 700 && height < 800)
+        {
+            p0 = 3.614e-14;
+            h0 = 700;
+            H = 88.667;
+        }
+        else if (height >= 800)
+        {
+            p0 = 1.170e-14;
+            h0 = 800;
+            H = 124.64;
+        }
+
+        double deltaH = (height - h0) / H;
+        return p0*MathUtility.Exp(-deltaH);
     }
 }

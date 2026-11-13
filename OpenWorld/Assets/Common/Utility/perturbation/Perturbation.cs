@@ -1,5 +1,7 @@
 ﻿public static class Perturbation
 {
+    public static bool UseAtmosphereSpin = true;//대기 자전
+
     // a_J2 = -(3/2) J2 μ R² / r^5 · [ (1 - 5 (r·k)²/r²) r + 2 (r·k) k ]
     /// <summary>
     /// J2 항에 의한 섭동 가속도
@@ -85,5 +87,28 @@
 
         Vector3D r_Fqs = r+fq * s;
         return -mu*r_Fqs/(MathUtility.Pow(s_r,3));
+    }
+
+    /// <summary>
+    /// 항력 가속도
+    /// </summary>
+    /// <param name="r"></param>
+    /// <param name="v"></param>
+    /// <param name="rho"></param>
+    /// <param name="Cd"></param>
+    /// <param name="A"></param>
+    /// <param name="m"></param>
+    /// <returns></returns>
+    public static Vector3D DragAccel(Vector3D r, Vector3D v,double B)
+    {
+        Vector3D ω_E = new Vector3D(0,0, ConstUtility.EarthW_E); // rad/s, 지구 자전각속도
+        Vector3D vRel = UseAtmosphereSpin ? v - Vector3D.Cross(ω_E, r) : v;
+        double vMag = vRel.Magnitude();
+        double h = MathUtility.Abs(r.Magnitude()) - ConstUtility.EarthRadius;
+
+        //밀도
+        double rho = PhysicsFormula.Rho(h);
+
+        return -0.5 * rho *v*vMag* B*1000;//ρ(kg/m³)·B(m²/kg) = 1/m → 1/km
     }
 }

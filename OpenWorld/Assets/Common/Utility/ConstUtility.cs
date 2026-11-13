@@ -11,6 +11,10 @@ public static class ConstUtility
     public const double G = 6.67387;
     //중력 가속도
     public const double gravity = 9.81;
+    //지구 반지름
+    public const double EarthRadius = 6377;
+    //지구 자전 각속도
+    public const double EarthW_E = 7.2921159e-5;
 
     //원주율
     public const double PI = 3.14159265358979323846;

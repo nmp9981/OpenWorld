@@ -8,10 +8,12 @@ public static class IntegratorUtility
     public delegate Vector3D AccelFunc(Vector3D pos);
 
     public delegate Vector3D AccelFuncT(double t,Vector3D pos);
+    public delegate Vector3D AccelFuncTV(double t, Vector3D pos ,Vector3D vel);
 
     /// <summary>다물체용 가속도 함수: positions를 읽어 accelOut을 전부 덮어쓴다.</summary>
     public delegate void AccelFuncN(Vector3D[] positions, Vector3D[] accelOut);
     public delegate void AccelFuncNT(double t,Vector3D[] positions, Vector3D[] accelOut);
+
 
     /// <summary>
     /// RK45용 상수 계수. 7단계 Runge-Kutta-Fehlberg (RKF45) Butcher tableau.
@@ -87,6 +89,20 @@ public static class IntegratorUtility
         double w = dt / 6.0;
         r += (k1r + k2r * 2.0 + k3r * 2.0 + k4r) * w;
         v += (k1v + k2v * 2.0 + k3v * 2.0 + k4v) * w;
+    }
+    public static void RK4(ref Vector3D r, ref Vector3D v, ref double t, double dt, AccelFuncTV a)
+    {
+        double h = 0.5 * dt;
+
+        Vector3D k1r = v; Vector3D k1v = a(t, r, v);
+        Vector3D k2r = v + k1v * h; Vector3D k2v = a(t + h, r + k1r * h, v+k1v*h);
+        Vector3D k3r = v + k2v * h; Vector3D k3v = a(t + h, r + k2r * h, v + k2v * h);
+        Vector3D k4r = v + k3v * dt; Vector3D k4v = a(t + dt, r + k3r * dt, v + k3v * dt);
+
+        double w = dt / 6.0;
+        r += (k1r + k2r * 2.0 + k3r * 2.0 + k4r) * w;
+        v += (k1v + k2v * 2.0 + k3v * 2.0 + k4v) * w;
+        t += dt;
     }
     public static void RK4(ref Vector3D r, ref Vector3D v, double dt, AccelFunc a)
     {
@@ -207,6 +223,59 @@ public static class IntegratorUtility
 
         accepted = errNorm <= 1.0;
         if (accepted) { r = rNew; v = vNew; }
+
+        //h갱신
+        h = h * MathUtility.Min(5, MathUtility.Max(0.2, 0.9 * MathUtility.Pow(MathUtility.Max(errNorm, 1e-16), -0.2)));
+
+        //바닥한계
+        if (h < ConstUtility.Epcilon12) throw new InvalidOperationException("RK45: 스텝 크기가 바닥에 닿음");
+    }
+    public static void RK45(ref Vector3D r, ref Vector3D v,ref double t, ref double h, AccelFuncTV a,
+                        double rTol, double aTol, out bool accepted)
+    {
+        Vector3D k1r = v; Vector3D k1v = a(t,r,v);
+
+        Vector3D r2 = r + (k1r * a21) * h;
+        Vector3D v2 = v + (k1v * a21) * h;
+        Vector3D k2r = v2; Vector3D k2v = a(t + c[1],r2,v2);
+
+        Vector3D r3 = r + (k1r * a3[0] + k2r * a3[1]) * h;
+        Vector3D v3 = v + (k1v * a3[0] + k2v * a3[1]) * h;
+        Vector3D k3r = v3; Vector3D k3v = a(t + c[2],r3,v3);
+
+        Vector3D r4 = r + (k1r * a4[0] + k2r * a4[1] + k3r * a4[2]) * h;
+        Vector3D v4 = v + (k1v * a4[0] + k2v * a4[1] + k3v * a4[2]) * h;
+        Vector3D k4r = v4; Vector3D k4v = a(t + c[3],r4,v4);
+
+        Vector3D r5 = r + (k1r * a5[0] + k2r * a5[1] + k3r * a5[2] + k4r * a5[3]) * h;
+        Vector3D v5 = v + (k1v * a5[0] + k2v * a5[1] + k3v * a5[2] + k4v * a5[3]) * h;
+        Vector3D k5r = v5; Vector3D k5v = a(t + c[4],r5,v5);
+
+        Vector3D r6 = r + (k1r * a6[0] + k2r * a6[1] + k3r * a6[2] + k4r * a6[3] + k5r * a6[4]) * h;
+        Vector3D v6 = v + (k1v * a6[0] + k2v * a6[1] + k3v * a6[2] + k4v * a6[3] + k5v * a6[4]) * h;
+        Vector3D k6r = v6; Vector3D k6v = a(t + c[5],r6,v6);
+
+        //5차해
+        Vector3D rNew = r + (k1r * a7[0] + k3r * a7[2] + k4r * a7[3] + k5r * a7[4] + k6r * a7[5]) * h;
+        Vector3D vNew = v + (k1v * a7[0] + k3v * a7[2] + k4v * a7[3] + k5v * a7[4] + k6v * a7[5]) * h;
+        Vector3D k7r = vNew, k7v = a(t + c[6],rNew,vNew);
+
+        //오차
+        Vector3D errR = (k1r * e[0] + k2r * e[1] + k3r * e[2] + k4r * e[3] + k5r * e[4] + k6r * e[5] + k7r * e[6]) * h;
+        Vector3D errV = (k1v * e[0] + k2v * e[1] + k3v * e[2] + k4v * e[3] + k5v * e[4] + k6v * e[5] + k7v * e[6]) * h;
+
+        //오차 정규화
+        double sc1 = aTol + rTol * MathUtility.Max(MathUtility.Abs(r.x), MathUtility.Abs(rNew.x));
+        double sc2 = aTol + rTol * MathUtility.Max(MathUtility.Abs(r.y), MathUtility.Abs(rNew.y));
+        double sc3 = aTol + rTol * MathUtility.Max(MathUtility.Abs(r.z), MathUtility.Abs(rNew.z));
+        double sc4 = aTol + rTol * MathUtility.Max(MathUtility.Abs(v.x), MathUtility.Abs(vNew.x));
+        double sc5 = aTol + rTol * MathUtility.Max(MathUtility.Abs(v.y), MathUtility.Abs(vNew.y));
+        double sc6 = aTol + rTol * MathUtility.Max(MathUtility.Abs(v.z), MathUtility.Abs(vNew.z));
+        double errNorm = MathUtility.Sqrt((errR.x * errR.x) / (sc1 * sc1) + (errR.y * errR.y) / (sc2 * sc2) + (errR.z * errR.z) / (sc3 * sc3)
+                                    + (errV.x * errV.x) / (sc4 * sc4) + (errV.y * errV.y) / (sc5 * sc5) + (errV.z * errV.z) / (sc6 * sc6)) / MathUtility.Sqrt(6.0);
+
+        accepted = errNorm <= 1.0;
+        if (accepted) { r = rNew; v = vNew; t += h; }
 
         //h갱신
         h = h * MathUtility.Min(5, MathUtility.Max(0.2, 0.9 * MathUtility.Pow(MathUtility.Max(errNorm, 1e-16), -0.2)));
