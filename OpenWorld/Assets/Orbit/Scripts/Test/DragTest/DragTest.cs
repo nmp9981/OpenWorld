@@ -9,7 +9,7 @@ public class DragTest : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Example_O();
+        Battin_Result();
     }
 
     void Example_M()
@@ -87,7 +87,7 @@ public class DragTest : MonoBehaviour
         Debug.Log($"Initial Energy: {deltaE}, Final Energy: {energyW}, Rate of Energy Loss: {rateEnergy}");
     }
 
-    void Example_O()
+    void Example_O_12()
     {
         Debug.Log("J2 off / J2 on");
         Debug.Log($"경사각 0 : {Model_O(true, 0.0f,false)/Model_O(true, 0.0f,true)}");
@@ -186,5 +186,43 @@ public class DragTest : MonoBehaviour
         double rateEnergy = (deltaE - energyW) / deltaE;
         Debug.Log($"Initial Energy: {deltaE}, Final Energy: {energyW}, Rate of Energy Loss: {rateEnergy}");
         return 0;
+    }
+    /// <summary>
+    /// 배팅 공식과 비교
+    /// </summary>
+    void Battin_Result()
+    {
+        Vector3D a1 = Perturbation.BattinAccel(new Vector3D(0, 6778.1363, 0), new Vector3D(384400,0,0), 4902.800066);
+        Debug.Log($"Battin Accel: {a1.x} {a1.y} {a1.z}");
+        Vector3D a2 = Perturbation.BattinAccel(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(384400, 0, 0), 4902.800066);
+        Debug.Log($"Battin Accel: {a2.x} {a2.y} {a2.z}");
+        Vector3D a3 = Perturbation.BattinAccel(new Vector3D(0, 6778.1363, 0), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
+        Debug.Log($"Battin Accel: {a3.x} {a3.y} {a3.z}");
+        Vector3D a4 = Perturbation.BattinAccel(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
+        Debug.Log($"Battin Accel: {a4.x} {a4.y} {a4.z}");
+
+        Vector3D ref1 = new Vector3D(-1.5468697962814239e-11, -5.8479254399813822e-10, 0);                       // 달, 수직
+        Vector3D ref2 = new Vector3D(8.3466130534587186e-10, -4.2946839589985265e-10, -8.9605123390818228e-11);   // 달, 비스듬
+        Vector3D ref3 = new Vector3D(-1.8260885748842352e-14, -2.6868640609668880e-10, 0);                       // 태양, 수직
+        Vector3D ref4 = new Vector3D(3.7999137767083369e-10, -1.9000958451222909e-10, -3.9643970145888524e-11);   // 태양, 비스듬
+
+        Debug.Log($"달 수직: {(a1 - ref1).Magnitude() / ref1.Magnitude():E2}");
+        Debug.Log($"달 비스듬: {(a2 - ref2).Magnitude() / ref2.Magnitude():E2}");
+        Debug.Log($"태양 수직: {(a3 - ref3).Magnitude() / ref3.Magnitude():E2}");
+        Debug.Log($"태양 비스듬: {(a4 - ref4).Magnitude() / ref4.Magnitude():E2}");
+
+        Vector3D a5 = Perturbation.ThirdBodyAccel(new Vector3D(0, 6778.1363, 0), new Vector3D(384400, 0, 0), 4902.800066);
+        Debug.Log($"Third Body Accel: {a5.x} {a5.y} {a5.z}");
+        Vector3D a6 = Perturbation.ThirdBodyAccel(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(384400, 0, 0), 4902.800066);
+        Debug.Log($"Third Body Accel: {a6.x} {a6.y} {a6.z}");
+        Vector3D a7 = Perturbation.ThirdBodyAccel(new Vector3D(0, 6778.1363, 0), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
+        Debug.Log($"Third Body Accel: {a7.x} {a7.y} {a7.z}");
+        Vector3D a8 = Perturbation.ThirdBodyAccel(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
+        Debug.Log($"Third Body Accel: {a8.x} {a8.y} {a8.z}");
+
+        Debug.Log($"달 수직: {(a5 - ref1).Magnitude() / ref1.Magnitude():E2}");
+        Debug.Log($"달 비스듬: {(a6 - ref2).Magnitude() / ref2.Magnitude():E2}");
+        Debug.Log($"태양 수직: {(a7 - ref3).Magnitude() / ref3.Magnitude():E2}");
+        Debug.Log($"태양 비스듬: {(a8 - ref4).Magnitude() / ref4.Magnitude():E2}");
     }
 }

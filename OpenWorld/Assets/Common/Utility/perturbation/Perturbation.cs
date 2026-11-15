@@ -76,7 +76,7 @@
     /// Battin 정식화
     /// </summary>
     /// <returns></returns>
-    public static Vector3D BattinAccel(Vector3D r, Vector3D s, double mu)
+    public static Vector3D BattinAccel_Error(Vector3D r, Vector3D s, double mu)
     {
         double r_s = (r-s).Magnitude();
         double s_r = (s-r).Magnitude();
@@ -87,6 +87,24 @@
 
         Vector3D r_Fqs = r+fq * s;
         return -mu*r_Fqs/(MathUtility.Pow(s_r,3));
+    }
+    /// <summary>
+    /// 제3천체 섭동 가속도 (Battin 정식화, 상쇄 없음)
+    /// a = −μ/|r − s|³ · [r + f(q) s]
+    /// </summary>
+    public static Vector3D BattinAccel(Vector3D r, Vector3D s, double mu)
+    {
+        Vector3D d = r - s;
+        double dMag = d.Magnitude();
+
+        // q = r·(r − 2s) / s²  : 내적 형태로 계산해야 상쇄가 없음
+        double q = Vector3D.Dot(r, r - 2.0 * s) / Vector3D.Dot(s, s);
+
+        // f(q) = q(3 + 3q + q²) / (1 + (1+q)^(3/2)) : (1+q)^(3/2) − 1을 직접 빼지 않음
+        double onePlusQ = 1.0 + q;
+        double fq = q * (3.0 + 3.0 * q + q * q) / (1.0 + onePlusQ * MathUtility.Sqrt(onePlusQ));
+
+        return (-mu / (dMag * dMag * dMag)) * (r + fq * s);
     }
 
     /// <summary>
