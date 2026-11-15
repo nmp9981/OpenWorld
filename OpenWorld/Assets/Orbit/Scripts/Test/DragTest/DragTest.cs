@@ -10,6 +10,7 @@ public class DragTest : MonoBehaviour
     void Start()
     {
         Battin_Result();
+        Example_O3();
     }
 
     void Example_M()
@@ -140,9 +141,6 @@ public class DragTest : MonoBehaviour
         double P0 = 0;
         double P1 = 0;
 
-        //승교점 리스트
-        List<(double, double)> RAANList = new List<(double, double)>();
-        
         //이전 z좌표
         double prevZ = r.z;
 
@@ -160,7 +158,7 @@ public class DragTest : MonoBehaviour
 
             energyW += 0.5 * (P0 + P1) * dt;
 
-            heightSum += r.Magnitude() - R;
+            heightSum += (r.Magnitude() - R);//고도 차
 
             if ((i + 1) % steps == 0)//하루 지남
             {
@@ -187,6 +185,63 @@ public class DragTest : MonoBehaviour
         Debug.Log($"Initial Energy: {deltaE}, Final Energy: {energyW}, Rate of Energy Loss: {rateEnergy}");
         return 0;
     }
+
+    void Example_O3()
+    {
+        Model_O3(0.0);
+    }
+
+    void Model_O3(double i_angle)
+    {
+        //대기 자전 ON
+        Perturbation.UseAtmosphereSpin = true;
+
+        //경사각 단위
+        i_angle = i_angle * ConstUtility.Deg2Rad;
+
+        //가속도
+        ForceModel model = new ForceModel();
+        model.EpochJD = 2461119.5;
+
+        //초기 설계
+        double Mu = 398600.4418;
+        double B = model.B;
+        double R = 6378.1363;
+        Vector3D r = new Vector3D(R + 400, 0, 0);
+        Vector3D v = MathUtility.Sqrt(Mu / (R + 400)) * new Vector3D(0, MathUtility.Cos(i_angle), MathUtility.Sin(i_angle));
+
+        //적분 간격
+        double dt = 2.5;
+        int steps = (int)(86400 / dt);   // 1일
+        double t = 0;
+
+        //에너지
+        double J2 = 0.00108262668;
+        double rMag = r.Magnitude();
+        double J2Energy = J2Energy = Mu * J2 * R * R / (2 * rMag * rMag * rMag) * (3 * r.z * r.z / (rMag * rMag) - 1);
+        double initialEnergy = 0.5 * v.Magnitude() * v.Magnitude() - Mu / r.Magnitude() + J2Energy;
+       
+        //가속도 출력
+        // 1. 지금 시각의 JD
+        double jd = model.EpochJD + t / 86400.0;
+
+        // 2. 그 시각의 태양·달 위치
+        Vector3D sunPos = CoorninateObjectUtility.Sun_In_JD(jd);
+        Vector3D moonPos = CoorninateObjectUtility.Moon_In_JD(jd);
+
+        // 3. 각 가속도 (Vector3D)
+        Vector3D twoBody = Gravity.TwoBody(r, Mu);
+        Debug.Log($"가속도 2체 {twoBody.Magnitude()}");
+        Vector3D drag = Perturbation.DragAccel(r, v, B);
+        Debug.Log($"가속도 항력 {drag.Magnitude()}");
+        Vector3D j2 = Perturbation.J2Accel(r, new Vector3D(0,0,1), Mu, ConstUtility.EarthRadius, ConstUtility.EarthJ2);
+        Debug.Log($"가속도 J2 {j2.Magnitude()}");
+        Vector3D moonA = Perturbation.ThirdBodyAccel(r, moonPos, ConstUtility.muMoon);
+        Debug.Log($"가속도 달 {moonA.Magnitude()}");
+        Vector3D sunA = Perturbation.ThirdBodyAccel(r, sunPos, ConstUtility.muSun);
+        Debug.Log($"가속도 태양 {sunA.Magnitude()}");
+    }
+
     /// <summary>
     /// 배팅 공식과 비교
     /// </summary>

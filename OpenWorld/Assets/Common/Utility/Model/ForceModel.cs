@@ -14,6 +14,10 @@ public sealed class ForceModel
     public double MuMoon = 4902.800;                       // km^3/s^2
     public Vector3D MoonPosition = new Vector3D(384400, 0, 0); // 지심 [km], 구현 J 전까지 고정
 
+    public double EpochJD;   // 적분 t = 0에 해당하는 율리우스일
+    public double B = 0.022;
+    Vector3D K = new Vector3D(0, 0, 1);
+
     public Vector3D Accel(double t, Vector3D r)
     {
         Vector3D a = Gravity.TwoBody(r, Mu);
@@ -40,4 +44,23 @@ public sealed class ForceModel
         return (-mu / (r2 * rMag)) * r;
     }
 
+    public Vector3D Accel(double t, Vector3D r,Vector3D v)
+    {
+        // 1. 지금 시각의 JD
+        double jd = EpochJD + t / 86400.0;
+
+        // 2. 그 시각의 태양·달 위치
+        Vector3D sunPos = CoorninateObjectUtility.Sun_In_JD(jd);
+        Vector3D moonPos = CoorninateObjectUtility.Moon_In_JD(jd);
+
+        // 3. 각 가속도 (Vector3D)
+        Vector3D twoBody = Gravity.TwoBody(r, Mu);
+        Vector3D drag = Perturbation.DragAccel(r, v, B);
+        Vector3D j2 = Perturbation.J2Accel(r, K, Mu, ConstUtility.EarthRadius, ConstUtility.EarthJ2);
+        Vector3D moonA = Perturbation.ThirdBodyAccel(r, moonPos, ConstUtility.muMoon);
+        Vector3D sunA = Perturbation.ThirdBodyAccel(r, sunPos, ConstUtility.muSun);
+
+        // 4. 벡터로 더해서 반환
+        return twoBody + drag + j2 + moonA + sunA;
+    }
 }

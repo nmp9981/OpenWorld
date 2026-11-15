@@ -12,9 +12,15 @@ public static class ConstUtility
     //중력 가속도
     public const double gravity = 9.81;
     //지구 반지름
-    public const double EarthRadius = 6377;
+    public const double EarthRadius = 6378.1363;
     //지구 자전 각속도
     public const double EarthW_E = 7.2921159e-5;
+    //지구 J2
+    public const double EarthJ2 = 0.0010826267;
+
+    //타 전체
+    public const double muMoon = 4902.800066;   // 달 중력상수 (km^3/s^2)
+    public const double muSun = 1.32712440018e11;   // 태양 중력상수 (km^3/s^2)
 
     //원주율
     public const double PI = 3.14159265358979323846;
