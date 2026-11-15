@@ -109,6 +109,6 @@
         //밀도
         double rho = PhysicsFormula.Rho(h);
 
-        return -0.5 * rho *v*vMag* B*1000;//ρ(kg/m³)·B(m²/kg) = 1/m → 1/km
+        return -0.5 * rho *vRel*vMag* B*1000;//ρ(kg/m³)·B(m²/kg) = 1/m → 1/km
     }
 }
