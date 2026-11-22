@@ -247,13 +247,13 @@ public class DragTest : MonoBehaviour
     /// </summary>
     void Battin_Result()
     {
-        Vector3D a1 = Perturbation.BattinAccel(new Vector3D(0, 6778.1363, 0), new Vector3D(384400,0,0), 4902.800066);
+        Vector3D a1 = Perturbation.BattinAccel_Error(new Vector3D(0, 6778.1363, 0), new Vector3D(384400,0,0), 4902.800066);
         Debug.Log($"Battin Accel: {a1.x} {a1.y} {a1.z}");
-        Vector3D a2 = Perturbation.BattinAccel(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(384400, 0, 0), 4902.800066);
+        Vector3D a2 = Perturbation.BattinAccel_Error(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(384400, 0, 0), 4902.800066);
         Debug.Log($"Battin Accel: {a2.x} {a2.y} {a2.z}");
-        Vector3D a3 = Perturbation.BattinAccel(new Vector3D(0, 6778.1363, 0), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
+        Vector3D a3 = Perturbation.BattinAccel_Error(new Vector3D(0, 6778.1363, 0), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
         Debug.Log($"Battin Accel: {a3.x} {a3.y} {a3.z}");
-        Vector3D a4 = Perturbation.BattinAccel(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
+        Vector3D a4 = Perturbation.BattinAccel_Error(new Vector3D(4792.9, 4792.9, 1000), new Vector3D(1.495978707e8, 0, 0), 1.32712440018e11);
         Debug.Log($"Battin Accel: {a4.x} {a4.y} {a4.z}");
 
         Vector3D ref1 = new Vector3D(-1.5468697962814239e-11, -5.8479254399813822e-10, 0);                       // ´Þ, ¼öÁ÷
